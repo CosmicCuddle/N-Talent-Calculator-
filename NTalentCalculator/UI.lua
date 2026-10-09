@@ -180,37 +180,31 @@ end
 
 local function SetTreeBackground(view, class, treeName, panelHeight)
     local base = SpecTextureBase(class, treeName)
-    -- Blizzard's bottom talent textures have transparent/unpainted areas.
-    -- Stretch a dimmed native TopLeft tile behind all four original pieces
-    -- so the final rows do not abruptly fall onto an empty black rectangle.
+    -- Use ONE full-panel native specialization texture, not four semitransparent
+    -- artwork fragments over a second enlarged fragment. The stacked version
+    -- created the rectangular overlaps visible in WoW screenshots.
     if base then
-        view.artFill:SetTexture(base .. "TopLeft")
-        view.artFill:Show()
+        view.art:SetTexture(base .. "TopLeft")
+        view.art:Show()
     else
-        view.artFill:Hide()
-    end
-    for index, piece in ipairs(view.art) do
-        piece:SetHeight(panelHeight / 2)
-        if base then
-            piece:SetTexture(base .. view.artSuffixes[index])
-            piece:Show()
-        else
-            piece:Hide()
-        end
+        view.art:Hide()
     end
 end
 
--- Draw only real Talent.dbc prerequisite relationships. The links are
--- reusable native-client textures, beneath the button frame level and above
--- the muted background. No new icons, spell rules or persistent data.
+-- Prerequisite links must have actual visible runs outside the talent icons.
+-- With a 39px row step and 35px icons, a straight-down gap is only FOUR
+-- pixels high. Route the lines through the wider 28px column gutters.
+-- The DBC remains the authority for which relationships exist.
 local function NewPrerequisiteLink(panel)
     local link = {pieces = {}, tips = {}}
-    for i=1,3 do
+    for i=1,5 do
         local segment = panel:CreateTexture(nil, "ARTWORK", -3)
         segment:SetTexture("Interface\\Buttons\\WHITE8X8")
         segment:Hide()
         link.pieces[i] = segment
-        local tip = panel:CreateTexture(nil, "ARTWORK", -3)
+    end
+    for i=1,3 do
+        local tip = panel:CreateTexture(nil, "ARTWORK", -2)
         tip:SetTexture("Interface\\Buttons\\WHITE8X8")
         tip:Hide()
         link.tips[i] = tip
@@ -231,6 +225,16 @@ local function HideLink(link)
     for _, texture in ipairs(link.tips) do texture:Hide() end
 end
 
+local function Segment(texture, panel, x1, y1, x2, y2)
+    if math.abs(x2 - x1) < 1 then
+        if math.abs(y2 - y1) >= 1 then
+            Stroke(texture, panel, x1 - 1, math.min(y1, y2), 3, math.abs(y2-y1))
+        end
+    elseif math.abs(y2 - y1) < 1 then
+        Stroke(texture, panel, math.min(x1,x2), y1 - 1, math.abs(x2-x1), 3)
+    end
+end
+
 local function DrawLink(view, link, origin, target, fulfilled)
     local aCol, bCol = origin[3], target[3]
     local aRow, bRow = origin[2], target[2]
@@ -238,58 +242,58 @@ local function DrawLink(view, link, origin, target, fulfilled)
     local ay = LAYOUT.iconY + aRow * LAYOUT.rowStep + 17
     local bx = LAYOUT.iconX + bCol * LAYOUT.columnStep + 17
     local by = LAYOUT.iconY + bRow * LAYOUT.rowStep + 17
-    local color = fulfilled and {0.35, 0.95, 0.35, 0.95}
-        or {0.54, 0.54, 0.54, 0.80}
 
     HideLink(link)
-    for _, texture in ipairs(link.pieces) do
-        texture:SetVertexColor(unpack(color))
-    end
-    for _, texture in ipairs(link.tips) do
-        texture:SetVertexColor(unpack(color))
+    if bRow < aRow or (bRow == aRow and aCol == bCol) then
+        return
     end
 
-    -- A typical prerequisite is above its dependent talent. Connect icon
-    -- edges, not centres, and keep lines out of the talent artwork itself.
+    -- A 3px bright line is legible atop the dark spec artwork. The chosen
+    -- arrow colour responds to the precise prerequisite rank, not overall
+    -- tree points or whether the dependent talent can be purchased.
+    local color = fulfilled and {0.31, 1, 0.39, 1}
+        or {0.80, 0.80, 0.80, 0.95}
+    for _, tex in ipairs(link.pieces) do tex:SetVertexColor(unpack(color)) end
+    for _, tex in ipairs(link.tips) do tex:SetVertexColor(unpack(color)) end
+
+    local direction
+    if bCol > aCol then direction = 1
+    elseif bCol < aCol then direction = -1
+    else direction = aCol >= 3 and -1 or 1 end
+
+    -- The main trunk lives in the gap to the left/right of each icon,
+    -- so it cannot be covered by occupied intermediate talent rows.
+    local gutter = (LAYOUT.columnStep - 35) / 2
+    local fromLane = ax + direction * (18 + gutter)
+    local toLane = bx - direction * (18 + gutter)
+    if aCol == bCol then toLane = fromLane end
+    local fromEdge = ax + direction * 18
+    local toEdge = bx - direction * 18
+
+    -- For two different rows, bridge lanes in the first 4px row gap,
+    -- keeping long vertical runs inside icon-free column gutters.
     if bRow > aRow then
-        local srcBottom = ay + 18
-        local dstTop = by - 18
-        if ax == bx then
-            Stroke(link.pieces[1], view.panel, ax - 1, srcBottom, 2,
-                math.max(1, dstTop - srcBottom))
-        else
-            -- Route horizontally through the gap between talent rows.
-            local bendY = math.min(dstTop - 3, srcBottom + 3)
-            Stroke(link.pieces[1], view.panel, ax - 1, srcBottom,
-                2, math.max(1, bendY - srcBottom))
-            Stroke(link.pieces[2], view.panel,
-                math.min(ax, bx), bendY - 1, math.abs(ax - bx), 2)
-            Stroke(link.pieces[3], view.panel, bx - 1, bendY,
-                2, math.max(1, dstTop - bendY))
+        local bridgeY = ay + 20
+        Segment(link.pieces[1], view.panel, fromEdge, ay, fromLane, ay)
+        Segment(link.pieces[2], view.panel, fromLane, ay, fromLane, bridgeY)
+        if math.abs(toLane - fromLane) > 1 then
+            Segment(link.pieces[3], view.panel, fromLane, bridgeY, toLane, bridgeY)
         end
-        -- A small downward arrow built from square pixel bars. Unlike a
-        -- platform-specific sprite sheet, this renders in every 3.3.5a
-        -- client without a new texture dependency.
-        for i=1,3 do
-            Stroke(link.tips[i], view.panel, bx - (6 - i * 2) - 1,
-                dstTop - (10 - i * 3), 11 - i * 4, 2)
-        end
-    elseif bRow == aRow and ax ~= bx then
-        -- Some original DBC prerequisites are on the same row.
-        local direction = bx > ax and 1 or -1
-        local srcEdge = ax + direction * 18
-        local dstEdge = bx - direction * 18
-        Stroke(link.pieces[1], view.panel, math.min(srcEdge, dstEdge),
-            by - 1, math.abs(dstEdge - srcEdge), 2)
-        for i=1,3 do
-            local x = dstEdge - direction * (8 - i * 3)
-            Stroke(link.tips[i], view.panel, x, by - (6 - i * 2),
-                2, 11 - i * 4)
-        end
+        Segment(link.pieces[4], view.panel, toLane, bridgeY, toLane, by)
+        Segment(link.pieces[5], view.panel, toLane, by, toEdge, by)
     else
-        -- An unusual or invalid DBC relationship must not draw a misleading
-        -- backward arrow; the engine still validates the prerequisite.
-        HideLink(link)
+        -- Same-row dependencies remain on a single clear horizontal lane.
+        Segment(link.pieces[1], view.panel, fromEdge, ay, toEdge, by)
+    end
+
+    -- Compact, recognisable chevron located beside (not over) the destination
+    -- slot. It always points towards the required target talent.
+    local arrow = direction == 1 and 1 or -1
+    for i=1,3 do
+        local distance = 9 - i * 3
+        local arrowX = toEdge - arrow * distance
+        Stroke(link.tips[i], view.panel, arrowX - 1,
+            by - 5 + (i-1)*3, 3, 11 - (i-1)*3)
     end
 end
 
@@ -448,31 +452,18 @@ local function CreateWindow()
         panel:SetBackdropColor(0.04, 0.035, 0.05, 0.96)
         panel:SetBackdropBorderColor(0.55, 0.43, 0.23, 1)
 
-        -- The full-height underlay catches transparent/unpainted edges of
-        -- the native four-part spec artwork, especially in Vanilla rows 6-7.
-        local artFill = panel:CreateTexture(nil, "ARTWORK", -6)
-        artFill:SetAllPoints(panel)
-        artFill:SetVertexColor(0.70, 0.70, 0.70, 0.52)
-        artFill:Hide()
+        -- One seamless Blizzard specialization texture for the entire panel.
+        -- Previously four native tiles + a repeated TopLeft background made
+        -- conspicuous squares and dark seams in the actual 3.3.5a client.
+        local art = panel:CreateTexture(nil, "ARTWORK", -5)
+        art:SetAllPoints(panel)
+        art:SetVertexColor(0.85, 0.83, 0.81, 0.72)
+        art:Hide()
 
-        -- Draw four original Blizzard tiles on top, with a subtle veil.
-        local art = {}
-        local suffixes = {"TopLeft", "TopRight", "BottomLeft", "BottomRight"}
-        local anchors = {"TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT"}
-        for tileIndex=1,4 do
-            local piece = panel:CreateTexture(nil, "ARTWORK", -5)
-            piece:SetPoint(anchors[tileIndex], panel, anchors[tileIndex])
-            piece:SetWidth(LAYOUT.panelWidth / 2)
-            piece:SetHeight((LAYOUT.panelBaseHeight + 11 * LAYOUT.rowStep) / 2)
-            -- Authentic Blizzard artwork should be visible, while retaining
-            -- enough contrast for disabled talents and rank counters.
-            piece:SetVertexColor(0.89, 0.86, 0.81, 0.90)
-            art[tileIndex] = piece
-        end
         local veil = panel:CreateTexture(nil, "ARTWORK", -4)
         veil:SetTexture("Interface\\Buttons\\WHITE8X8")
         veil:SetAllPoints(panel)
-        veil:SetVertexColor(0.018, 0.015, 0.022, 0.28)
+        veil:SetVertexColor(0.018, 0.015, 0.022, 0.35)
 
         -- Dark title bar and fine gold accent, above artwork and veil.
         local titleBar = panel:CreateTexture(nil, "ARTWORK", 1)
@@ -494,8 +485,7 @@ local function CreateWindow()
             LAYOUT.panelWidth - 64, -11, 52)
         count:SetJustifyH("RIGHT")
         trees[i] = {
-            panel=panel, title=name, count=count, art=art,
-            artSuffixes=suffixes, artFill=artFill, veil=veil,
+            panel=panel, title=name, count=count, art=art, veil=veil,
             links={}, activeLinks=0
         }
     end
