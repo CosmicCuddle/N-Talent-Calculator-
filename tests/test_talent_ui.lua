@@ -166,6 +166,22 @@ local function AssertThreeSpecBackgrounds(class)
     assert(count == 12 and imageCount == 3,
         class .. " needs twelve real art tiles for exactly three distinct trees; got " ..
         count .. " pieces / " .. imageCount .. " specs")
+
+    local fillers = {}
+    for _, tex in ipairs(textures) do
+        if tex.drawLayer == "ARTWORK" and tex.sublevel == -6 and tex.visible then
+            fillers[#fillers+1] = tex
+        end
+    end
+    assert(#fillers == 3,
+        class .. " should have one full-height spec underlay per panel")
+    for _, fill in ipairs(fillers) do
+        assert(fill.allPoints == fill.parent, "Spec artwork fill must cover the entire panel")
+        assert(fill.texture and fill.texture:find("^Interface\\TalentFrame\\"),
+            "Spec artwork underlay must come from Blizzard's client art")
+        assert(fill.tint[4] >= 0.5 and fill.tint[4] <= 0.65,
+            "The art fill must be visible but subdued")
+    end
     -- Images on the BACKGROUND layer were occluded by the nearly opaque
     -- tree-panel backdrop in a real client. The rendered tiles now must
     -- sit on low ARTWORK sublayers ahead of the panel backdrop.
@@ -234,6 +250,76 @@ assert(bases["Interface\\TalentFrame\\WarlockCurses-TopLeft"],
     "Affliction art must use actual Blizzard WarlockCurses filename")
 assert(bases["Interface\\TalentFrame\\WarlockSummoning-TopLeft"],
     "Demonology art must use actual Blizzard WarlockSummoning filename")
+
+-- Prerequisite connectors come from the approved Talent.dbc IDs and must
+-- disappear when a later-era talent is hidden, with colours reflecting
+-- completion of the specific required talent rank.
+local function LinkStrokes()
+    local strokes = {}
+    for _, tex in ipairs(textures) do
+        if tex.drawLayer == "ARTWORK" and tex.sublevel == -3 and tex.visible then
+            strokes[#strokes+1] = tex
+        end
+    end
+    return strokes
+end
+
+local candidate, chosenClass, chosenTree, expectedTarget
+local greatestDelta = 0
+for _, class in ipairs(M.CLASS_ORDER) do
+    assert(M:SetClass(class))
+    M:SetProgression("vanilla", 1)
+    local countVanilla = #LinkStrokes()
+    M:SetProgression("wotlk", 13)
+    local countWotlk = #LinkStrokes()
+    greatestDelta = math.max(greatestDelta, countWotlk - countVanilla)
+
+    for _, tree in ipairs(M:GetTrees()) do
+        local lookup = {}
+        for _, talent in ipairs(tree[4]) do lookup[talent[1]] = talent end
+        for _, talent in ipairs(tree[4]) do
+            local req = talent[7]
+            local source = req and lookup[req]
+            if source and M:Available(talent, tree) and
+               M:Available(source, tree) and
+               (talent[2] > source[2] or talent[3] ~= source[3]) then
+                local requiredRank = (talent[8] or 0) + 1
+                if requiredRank <= #source[4] then
+                    candidate, chosenClass, chosenTree = source, class, tree
+                    expectedTarget = talent
+                    break
+                end
+            end
+        end
+        if candidate then break end
+    end
+    if candidate then break end
+end
+assert(greatestDelta > 0 or candidate,
+    "DBC talent dependencies should produce rendered connector lines")
+assert(candidate and chosenClass,
+    "Could not find any visible Talent.dbc prerequisite relationship")
+assert(M:SetClass(chosenClass))
+M:SetProgression("wotlk", 13)
+local before = LinkStrokes()
+assert(#before > 0, "Unfulfilled prerequisite links must be displayed")
+local greyStroke = false
+for _, tex in ipairs(before) do
+    if math.abs(tex.tint[1] - 0.54) < 0.01 then greyStroke = true break end
+end
+assert(greyStroke, "Locked prerequisite connector must be grey")
+M.points[candidate[1]] = (expectedTarget[8] or 0) + 1
+M:RefreshUI()
+local greenStroke = false
+for _, tex in ipairs(LinkStrokes()) do
+    if tex.tint[2] > 0.90 and tex.tint[1] < 0.5 then
+        greenStroke = true
+        break
+    end
+end
+assert(greenStroke, "Completed prerequisite connector must become green")
+M.points = {}
+M:RefreshUI()
 
 -- Return to Warrior for the click / share-code assertions below.
 assert(M:SetClass("warrior"))
