@@ -99,19 +99,13 @@ local function NewTalentButton(parent)
     })
     button.border = border
     button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
-    -- Small inset counter with its own dark backing; avoids white ranks
-    -- hanging outside the icon border on high UI scales.
-    local rankBacking = button:CreateTexture(nil, "OVERLAY")
-    rankBacking:SetTexture("Interface\\Buttons\\WHITE8X8")
-    rankBacking:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -1, 1)
-    rankBacking:SetWidth(25)
-    rankBacking:SetHeight(11)
-    rankBacking:SetVertexColor(0.015, 0.012, 0.018, 0.88)
-    button.rankBacking = rankBacking
-
+    -- Rank numbers only: no opaque backing obscuring the talent artwork.
+    -- Keep the counter inside the icon with a small dark text shadow so
+    -- white numbers remain legible against bright and greyed-out icons.
     local rank = button:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
     rank:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -2, 1)
     rank:SetShadowOffset(1, -1)
+    rank:SetShadowColor(0, 0, 0, 1)
     button.rank = rank
     button:SetScript("OnClick", function(self, mouseButton)
         local delta = mouseButton == "RightButton" and -1 or 1

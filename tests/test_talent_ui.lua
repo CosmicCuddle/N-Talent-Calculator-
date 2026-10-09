@@ -22,7 +22,8 @@ function model:SetText(t) self.text=t end
 function model:GetText() return self.text end
 function model:SetTextColor() end
 function model:SetJustifyH(value) self.justify = value end
-function model:SetShadowOffset() end
+function model:SetShadowOffset(x,y) self.shadowOffset={x,y} end
+function model:SetShadowColor(r,g,b,a) self.shadowColor={r,g,b,a} end
 function model:SetBackdrop(value) self.backdrop=value end
 function model:SetBackdropColor() end
 function model:SetBackdropBorderColor(...) self.tint={...} end
@@ -343,13 +344,26 @@ assert(first.icon.tint[1] == 1 and first.border.tint[2] > 0.9,
     "Allocated talents should have full-colour icon and green border")
 assert(first.border.allPoints == first,
     "Slot frame must fit the talent button with no protruding border")
-assert(first.rankBacking and first.rankBacking.width == 25 and
-    first.rankBacking.height == 11 and
-    first.rankBacking.tint[4] >= 0.8,
-    "Talent rank text requires a small opaque backing within the icon")
+assert(first.rankBacking == nil,
+    "Talent ranks must be numbers only, without an opaque backing box")
+assert(first.rank and first.rank.shadowOffset and
+    first.rank.shadowOffset[1] == 1 and first.rank.shadowOffset[2] == -1,
+    "Rank numbers should have a subtle readable offset shadow")
+assert(first.rank.shadowColor and
+    first.rank.shadowColor[1] == 0 and first.rank.shadowColor[2] == 0 and
+    first.rank.shadowColor[3] == 0 and first.rank.shadowColor[4] == 1,
+    "Rank numbers need a dark text shadow for visibility on bright icons")
 assert(first.rank.pos and first.rank.pos[4] == -2 and
     first.rank.pos[5] == 1,
     "Rank counter should remain inside the talent slot")
+assert(first.rank.text == "1/" .. #first.talent[4],
+    "The numeric rank counter must continue to update when points are added")
+for _, talentButton in ipairs(frames) do
+    if talentButton.talent then
+        assert(talentButton.rankBacking == nil,
+            "No talent button should create a black box behind the numbers")
+    end
+end
 assert(first.level and first.level >= 4,
     "Talent buttons must render above their spec artwork")
 assert(first.border.backdrop and first.border.backdrop.edgeSize == 2,

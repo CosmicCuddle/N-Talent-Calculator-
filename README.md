@@ -11,6 +11,7 @@ An experimental **WoW 3.3.5a talent calculator for the Naxxramas AzerothCore ser
 - Displays authentic **Blizzard 3.3.5a specialization artwork** for all 30 trees using textures already in the WoW client, rendered in front of the dark panel backdrop so the artwork is actually visible while talent icons stay in the foreground.
 - Uses precisely fitted talent icon frames with a 2px border; **Escape** closes the planner, including when the share-code text field has focus.
 - Uses a **more compact, balanced interface**: narrower three-tree panels, reduced spacing, grouped class navigation, a clear section divider and readable rank counters that no longer hang outside the icons.
+- **Text-only talent ranks:** Displays `0/3`, `1/5`, etc. directly on the icons with a subtle dark shadow, removing the opaque black backing boxes.
 - **Redesigned header:** A single dark, gold-framed status bar groups Individual Progression tier and visible rows on the left, class navigation in the centre, and the talent-point budget on the right. Less empty space separates the header from the three talent trees.
 - **Seamless specialization backgrounds:** Uses one subdued Blizzard client artwork image across each whole panel, removing the visible rectangular overlaps caused by multiple transparent image tiles.
 - **Visible Talent.dbc prerequisite connections:** Connects dependent talents using thicker, higher-contrast lines routed through gaps beside the icons rather than the 4-pixel gaps between rows. Arrows stay grey until the required prerequisite rank is planned, then turn green. Expansion-hidden talents have no connectors.
@@ -37,7 +38,7 @@ An experimental **WoW 3.3.5a talent calculator for the Naxxramas AzerothCore ser
 
 1. Back up your existing `Interface/AddOns/NTalentCalculator/` folder if it exists and the corresponding account `WTF/.../SavedVariables/NTalentCalculator.lua` file.
 2. Open the newest successful **Validate and package Talent Calculator** GitHub Actions run for this branch/PR.
-3. Download the `n-talent-calculator-test` artifact, then open the inner `N-Talent-Calculator-v0.1.0-alpha.8.zip` inside it.
+3. Download the `n-talent-calculator-test` artifact, then open the inner `N-Talent-Calculator-v0.1.0-alpha.9.zip` inside it.
 4. Extract the **one** `NTalentCalculator` folder directly into `World of Warcraft/Interface/AddOns/`.
 5. Start WoW 3.3.5a; enable `N Talent Calculator` in the AddOns screen, and type `/ntalent`.
 
