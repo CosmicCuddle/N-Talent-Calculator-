@@ -16,13 +16,13 @@ local LAYOUT = {
     panelX = 31,
     panelWidth = 282,
     panelGap = 16,
-    panelTop = 129,
+    panelTop = 119,
     rowStep = 39,
     columnStep = 63,
     iconX = 28,
     iconY = 45,
     panelBaseHeight = 52,
-    frameBaseHeight = 287,
+    frameBaseHeight = 277,
 }
 
 
@@ -236,37 +236,73 @@ local function CreateWindow()
     window:SetBackdropBorderColor(0.69, 0.55, 0.29, 1)
     window:Hide()
 
-    local heading = Label(window, "GameFontNormalLarge", "N Talent Calculator", 31, -20)
-    heading:SetTextColor(1, 0.84, 0.34)
+    -- Header: title + one compact three-column status/control bar.
+    -- The old text and class buttons floated apart; the grouped bar gives
+    -- progression, class selection, and talent budget equal visual weight.
+    local heading = Label(window, "GameFontNormalLarge",
+        "N Talent Calculator", 31, -17)
+    heading:SetTextColor(1, 0.85, 0.37)
     Label(window, "GameFontDisableSmall",
-        "Build planner - no changes to your character's actual talents", 31, -44, 535)
-
-    local headerRule = window:CreateTexture(nil, "ARTWORK")
-    headerRule:SetTexture("Interface\\Buttons\\WHITE8X8")
-    headerRule:SetPoint("TOPLEFT", window, "TOPLEFT", 31, -119)
-    headerRule:SetPoint("TOPRIGHT", window, "TOPRIGHT", -31, -119)
-    headerRule:SetHeight(1)
-    headerRule:SetVertexColor(0.63, 0.49, 0.24, 0.40)
+        "Plan and share builds  |  Never changes your actual talents",
+        31, -41, 650)
 
     local close = CreateFrame("Button", nil, window, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", window, "TOPRIGHT", -8, -8)
 
-    window.era = Label(window, "GameFontNormal",
-        "Checking Individual Progression...", 31, -73, 430)
-    window.tierLabel = Label(window, "GameFontHighlightSmall", "", 31, -96, 440)
+    local header = CreateFrame("Frame", nil, window)
+    header:SetPoint("TOPLEFT", window, "TOPLEFT", 31, -60)
+    header:SetWidth(878)
+    header:SetHeight(52)
+    header:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = false, edgeSize = 12,
+        insets = {left=3, right=3, top=3, bottom=3}
+    })
+    header:SetBackdropColor(0.07, 0.06, 0.08, 0.96)
+    header:SetBackdropBorderColor(0.52, 0.41, 0.24, 0.85)
+    window.headerBar = header
 
-    -- Group navigation as a single control on the right, rather than
-    -- stretching the class name and points across the entire header.
-    window.previous = PushButton(window, "< Class", 91, 520, -73, function()
+    local function Divider(x)
+        local divider = header:CreateTexture(nil, "ARTWORK")
+        divider:SetTexture("Interface\\Buttons\\WHITE8X8")
+        divider:SetPoint("TOPLEFT", header, "TOPLEFT", x, -10)
+        divider:SetHeight(32)
+        divider:SetWidth(1)
+        divider:SetVertexColor(0.70, 0.55, 0.28, 0.48)
+    end
+    Divider(305)
+    Divider(628)
+
+    -- Left: compact automatic Individual Progression status.
+    window.tierLabel = Label(header, "GameFontDisableSmall",
+        "INDIVIDUAL PROGRESSION", 15, -8, 279)
+    window.era = Label(header, "GameFontNormal",
+        "Checking your progression...", 15, -27, 279)
+    window.era:SetTextColor(1, 0.81, 0.36)
+
+    -- Centre: one unified class selector.
+    local classLabel = Label(header, "GameFontDisableSmall",
+        "CLASS", 394, -7, 146)
+    classLabel:SetJustifyH("CENTER")
+    window.previous = PushButton(header, "<", 48, 320, -23, function()
         M:CycleClass(-1)
     end)
-    window.className = Label(window, "GameFontNormal", "", 622, -80, 181)
+    window.className = Label(header, "GameFontNormal",
+        "", 375, -31, 187)
     window.className:SetJustifyH("CENTER")
-    window.nextClass = PushButton(window, "Class >", 91, 817, -73, function()
+    window.nextClass = PushButton(header, ">", 48, 566, -23, function()
         M:CycleClass(1)
     end)
-    window.budget = Label(window, "GameFontNormal", "", 629, -103, 170)
+
+    -- Right: clearly identified current/planned talent-point budget.
+    local pointLabel = Label(header, "GameFontDisableSmall",
+        "TALENT POINTS", 649, -8, 209)
+    pointLabel:SetJustifyH("CENTER")
+    window.budget = Label(header, "GameFontNormal",
+        "", 649, -27, 209)
     window.budget:SetJustifyH("CENTER")
+    window.budget:SetTextColor(1, 0.81, 0.36)
 
     for i=1,3 do
         local panel = CreateFrame("Frame", nil, window)
@@ -401,8 +437,8 @@ end
 function M:RefreshUI()
     if not window or not window:IsShown() then return end
     if not self.era or not self:GetTrees(self.class) then
-        window.era:SetText("Reading your Individual Progression tier...")
-        window.tierLabel:SetText("Talent trees remain locked until the era is confirmed.")
+        window.era:SetText("Waiting for progression...")
+        window.tierLabel:SetText("INDIVIDUAL PROGRESSION")
         window.budget:SetText("")
         window.className:SetText("")
         for _, button in ipairs(buttons) do button:Hide() end
@@ -412,9 +448,9 @@ function M:RefreshUI()
 
     UpdateLayout()
     local rule = self.ERA[self.era]
-    window.era:SetText(rule.title .. "   |   Talent rows 1-" .. (rule.maxRow + 1))
-    window.tierLabel:SetText(self.tier and ("Individual Progression: Tier " .. self.tier) or
-        ("Individual Progression: " .. rule.title .. " (quest milestones)"))
+    window.era:SetText(rule.title .. "   |   Rows 1-" .. (rule.maxRow + 1))
+    window.tierLabel:SetText(self.tier and ("PROGRESSION  /  TIER " .. self.tier) or
+        "PROGRESSION  /  QUEST ERA")
     window.className:SetText(string.upper(self.class))
     window.budget:SetText(self:Spent() .. " / " .. (self.level - 9) .. " points")
     for _, button in ipairs(buttons) do button:Hide() end
