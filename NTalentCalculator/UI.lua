@@ -9,6 +9,23 @@ local trees = {}
 local buttons = {}
 local shown = {}
 
+-- Compact, consistent spacing across the header, three trees and footer.
+-- 31 + (282 * 3) + (16 * 2) + 31 = 940 UI pixels.
+local LAYOUT = {
+    width = 940,
+    panelX = 31,
+    panelWidth = 282,
+    panelGap = 16,
+    panelTop = 129,
+    rowStep = 39,
+    columnStep = 63,
+    iconX = 28,
+    iconY = 45,
+    panelBaseHeight = 52,
+    frameBaseHeight = 287,
+}
+
+
 local function Label(parent, font, content, x, y, width)
     local value = parent:CreateFontString(nil, "OVERLAY", font)
     value:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
@@ -82,8 +99,18 @@ local function NewTalentButton(parent)
     })
     button.border = border
     button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+    -- Small inset counter with its own dark backing; avoids white ranks
+    -- hanging outside the icon border on high UI scales.
+    local rankBacking = button:CreateTexture(nil, "OVERLAY")
+    rankBacking:SetTexture("Interface\\Buttons\\WHITE8X8")
+    rankBacking:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -1, 1)
+    rankBacking:SetWidth(25)
+    rankBacking:SetHeight(11)
+    rankBacking:SetVertexColor(0.015, 0.012, 0.018, 0.88)
+    button.rankBacking = rankBacking
+
     local rank = button:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
-    rank:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 2, -2)
+    rank:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -2, 1)
     rank:SetShadowOffset(1, -1)
     button.rank = rank
     button:SetScript("OnClick", function(self, mouseButton)
@@ -168,12 +195,12 @@ local function UpdateLayout()
     local rule = M.ERA[M.era]
     if not window or not rule then return end
     local visibleRows = rule.maxRow + 1
-    local height = 288 + visibleRows * 40
+    local height = LAYOUT.frameBaseHeight + visibleRows * LAYOUT.rowStep
     window:SetHeight(height)
     local screenW, screenH = UIParent:GetWidth(), UIParent:GetHeight()
     if screenW > 100 and screenH > 100 then
         window:SetScale(math.max(0.55, math.min(1,
-            (screenW - 38) / 1030, (screenH - 38) / height)))
+            (screenW - 38) / LAYOUT.width, (screenH - 38) / height)))
     end
 end
 
@@ -188,8 +215,8 @@ local function CreateWindow()
         end
         if not registered then table.insert(UISpecialFrames, "NTalentCalculatorFrame") end
     end
-    window:SetWidth(1030)
-    window:SetHeight(730)
+    window:SetWidth(LAYOUT.width)
+    window:SetHeight(LAYOUT.frameBaseHeight + 11 * LAYOUT.rowStep)
     window:SetPoint("CENTER", UIParent, "CENTER")
     window:SetFrameStrata("DIALOG")
     window:SetToplevel(true)
@@ -209,30 +236,45 @@ local function CreateWindow()
     window:SetBackdropBorderColor(0.69, 0.55, 0.29, 1)
     window:Hide()
 
-    local heading = Label(window, "GameFontNormalLarge", "N Talent Calculator", 31, -22)
+    local heading = Label(window, "GameFontNormalLarge", "N Talent Calculator", 31, -20)
     heading:SetTextColor(1, 0.84, 0.34)
-    Label(window, "GameFontDisableSmall", "Theorycraft only - this does not modify your character's talents", 32, -49, 600)
+    Label(window, "GameFontDisableSmall",
+        "Build planner - no changes to your character's actual talents", 31, -44, 535)
+
+    local headerRule = window:CreateTexture(nil, "ARTWORK")
+    headerRule:SetTexture("Interface\\Buttons\\WHITE8X8")
+    headerRule:SetPoint("TOPLEFT", window, "TOPLEFT", 31, -119)
+    headerRule:SetPoint("TOPRIGHT", window, "TOPRIGHT", -31, -119)
+    headerRule:SetHeight(1)
+    headerRule:SetVertexColor(0.63, 0.49, 0.24, 0.40)
 
     local close = CreateFrame("Button", nil, window, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", window, "TOPRIGHT", -8, -8)
 
-    window.era = Label(window, "GameFontNormal", "Checking Individual Progression...", 31, -79, 650)
-    window.tierLabel = Label(window, "GameFontHighlightSmall", "", 31, -103, 450)
-    window.budget = Label(window, "GameFontNormal", "", 778, -106, 210)
+    window.era = Label(window, "GameFontNormal",
+        "Checking Individual Progression...", 31, -73, 430)
+    window.tierLabel = Label(window, "GameFontHighlightSmall", "", 31, -96, 440)
 
-    window.previous = PushButton(window, "< Class", 91, 572, -76, function()
+    -- Group navigation as a single control on the right, rather than
+    -- stretching the class name and points across the entire header.
+    window.previous = PushButton(window, "< Class", 91, 520, -73, function()
         M:CycleClass(-1)
     end)
-    window.className = Label(window, "GameFontNormal", "", 674, -83, 135)
-    window.nextClass = PushButton(window, "Class >", 91, 882, -76, function()
+    window.className = Label(window, "GameFontNormal", "", 622, -80, 181)
+    window.className:SetJustifyH("CENTER")
+    window.nextClass = PushButton(window, "Class >", 91, 817, -73, function()
         M:CycleClass(1)
     end)
+    window.budget = Label(window, "GameFontNormal", "", 629, -103, 170)
+    window.budget:SetJustifyH("CENTER")
 
     for i=1,3 do
         local panel = CreateFrame("Frame", nil, window)
-        panel:SetPoint("TOPLEFT", window, "TOPLEFT", 31 + (i-1)*328, -145)
-        panel:SetWidth(308)
-        panel:SetHeight(490)
+        panel:SetPoint("TOPLEFT", window, "TOPLEFT",
+            LAYOUT.panelX + (i - 1) * (LAYOUT.panelWidth + LAYOUT.panelGap),
+            -LAYOUT.panelTop)
+        panel:SetWidth(LAYOUT.panelWidth)
+        panel:SetHeight(LAYOUT.panelBaseHeight + 11 * LAYOUT.rowStep)
         panel:SetBackdrop({
             bgFile = "Interface\\Buttons\\WHITE8X8",
             edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -252,8 +294,8 @@ local function CreateWindow()
         for tileIndex=1,4 do
             local piece = panel:CreateTexture(nil, "ARTWORK", -5)
             piece:SetPoint(anchors[tileIndex], panel, anchors[tileIndex])
-            piece:SetWidth(154)
-            piece:SetHeight(245)
+            piece:SetWidth(LAYOUT.panelWidth / 2)
+            piece:SetHeight((LAYOUT.panelBaseHeight + 11 * LAYOUT.rowStep) / 2)
             -- Authentic Blizzard artwork should be visible, while retaining
             -- enough contrast for disabled talents and rank counters.
             piece:SetVertexColor(0.89, 0.86, 0.81, 0.90)
@@ -279,8 +321,9 @@ local function CreateWindow()
         titleLine:SetHeight(1)
         titleLine:SetVertexColor(0.75, 0.56, 0.20, 0.55)
 
-        local name = Label(panel, "GameFontNormal", "", 14, -10, 200)
-        local count = Label(panel, "GameFontHighlightSmall", "", 243, -10, 55)
+        local name = Label(panel, "GameFontNormal", "", 14, -11, 185)
+        local count = Label(panel, "GameFontHighlightSmall", "",
+            LAYOUT.panelWidth - 64, -11, 52)
         count:SetJustifyH("RIGHT")
         trees[i] = {panel=panel, title=name, count=count, art=art, artSuffixes=suffixes, veil=veil}
     end
@@ -293,7 +336,7 @@ local function CreateWindow()
     codeLabel:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", 31, 80)
 
     window.code = CreateFrame("EditBox", nil, window, "InputBoxTemplate")
-    window.code:SetSize(650, 26)
+    window.code:SetSize(552, 26)
     window.code:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", 43, 44)
     window.code:SetAutoFocus(false)
     window.code:SetMaxLetters(2000)
@@ -380,7 +423,8 @@ function M:RefreshUI()
     for index, tree in ipairs(self:GetTrees()) do
         local view = trees[index]
         view.panel:Show()
-        local panelHeight = (rule.maxRow + 1) * 40 + 54
+        local panelHeight = LAYOUT.panelBaseHeight +
+            (rule.maxRow + 1) * LAYOUT.rowStep
         view.panel:SetHeight(panelHeight)
         SetTreeBackground(view, self.class, tree[2], panelHeight)
         view.title:SetText(tree[2])
@@ -400,7 +444,8 @@ function M:RefreshUI()
                 local row, col = talent[2], talent[3]
                 button:ClearAllPoints()
                 button:SetPoint("TOPLEFT", view.panel, "TOPLEFT",
-                    25 + col*68, -43 - row*40)
+                    LAYOUT.iconX + col * LAYOUT.columnStep,
+                    -LAYOUT.iconY - row * LAYOUT.rowStep)
                 local iconKey = self.Data.icons[tostring(talent[9])]
                 if type(iconKey) == "string" and
                     iconKey:match("^[a-zA-Z0-9_%-]+$") then
