@@ -180,6 +180,15 @@ end
 
 local function SetTreeBackground(view, class, treeName, panelHeight)
     local base = SpecTextureBase(class, treeName)
+    -- Blizzard's bottom talent textures have transparent/unpainted areas.
+    -- Stretch a dimmed native TopLeft tile behind all four original pieces
+    -- so the final rows do not abruptly fall onto an empty black rectangle.
+    if base then
+        view.artFill:SetTexture(base .. "TopLeft")
+        view.artFill:Show()
+    else
+        view.artFill:Hide()
+    end
     for index, piece in ipairs(view.art) do
         piece:SetHeight(panelHeight / 2)
         if base then
@@ -189,6 +198,125 @@ local function SetTreeBackground(view, class, treeName, panelHeight)
             piece:Hide()
         end
     end
+end
+
+-- Draw only real Talent.dbc prerequisite relationships. The links are
+-- reusable native-client textures, beneath the button frame level and above
+-- the muted background. No new icons, spell rules or persistent data.
+local function NewPrerequisiteLink(panel)
+    local link = {pieces = {}, tips = {}}
+    for i=1,3 do
+        local segment = panel:CreateTexture(nil, "ARTWORK", -3)
+        segment:SetTexture("Interface\\Buttons\\WHITE8X8")
+        segment:Hide()
+        link.pieces[i] = segment
+        local tip = panel:CreateTexture(nil, "ARTWORK", -3)
+        tip:SetTexture("Interface\\Buttons\\WHITE8X8")
+        tip:Hide()
+        link.tips[i] = tip
+    end
+    return link
+end
+
+local function Stroke(texture, panel, x, y, width, height)
+    texture:ClearAllPoints()
+    texture:SetPoint("TOPLEFT", panel, "TOPLEFT", x, -y)
+    texture:SetWidth(math.max(1, width))
+    texture:SetHeight(math.max(1, height))
+    texture:Show()
+end
+
+local function HideLink(link)
+    for _, texture in ipairs(link.pieces) do texture:Hide() end
+    for _, texture in ipairs(link.tips) do texture:Hide() end
+end
+
+local function DrawLink(view, link, origin, target, fulfilled)
+    local aCol, bCol = origin[3], target[3]
+    local aRow, bRow = origin[2], target[2]
+    local ax = LAYOUT.iconX + aCol * LAYOUT.columnStep + 17
+    local ay = LAYOUT.iconY + aRow * LAYOUT.rowStep + 17
+    local bx = LAYOUT.iconX + bCol * LAYOUT.columnStep + 17
+    local by = LAYOUT.iconY + bRow * LAYOUT.rowStep + 17
+    local color = fulfilled and {0.35, 0.95, 0.35, 0.95}
+        or {0.54, 0.54, 0.54, 0.80}
+
+    HideLink(link)
+    for _, texture in ipairs(link.pieces) do
+        texture:SetVertexColor(unpack(color))
+    end
+    for _, texture in ipairs(link.tips) do
+        texture:SetVertexColor(unpack(color))
+    end
+
+    -- A typical prerequisite is above its dependent talent. Connect icon
+    -- edges, not centres, and keep lines out of the talent artwork itself.
+    if bRow > aRow then
+        local srcBottom = ay + 18
+        local dstTop = by - 18
+        if ax == bx then
+            Stroke(link.pieces[1], view.panel, ax - 1, srcBottom, 2,
+                math.max(1, dstTop - srcBottom))
+        else
+            -- Route horizontally through the gap between talent rows.
+            local bendY = math.min(dstTop - 3, srcBottom + 3)
+            Stroke(link.pieces[1], view.panel, ax - 1, srcBottom,
+                2, math.max(1, bendY - srcBottom))
+            Stroke(link.pieces[2], view.panel,
+                math.min(ax, bx), bendY - 1, math.abs(ax - bx), 2)
+            Stroke(link.pieces[3], view.panel, bx - 1, bendY,
+                2, math.max(1, dstTop - bendY))
+        end
+        -- A small downward arrow built from square pixel bars. Unlike a
+        -- platform-specific sprite sheet, this renders in every 3.3.5a
+        -- client without a new texture dependency.
+        for i=1,3 do
+            Stroke(link.tips[i], view.panel, bx - (6 - i * 2) - 1,
+                dstTop - (10 - i * 3), 11 - i * 4, 2)
+        end
+    elseif bRow == aRow and ax ~= bx then
+        -- Some original DBC prerequisites are on the same row.
+        local direction = bx > ax and 1 or -1
+        local srcEdge = ax + direction * 18
+        local dstEdge = bx - direction * 18
+        Stroke(link.pieces[1], view.panel, math.min(srcEdge, dstEdge),
+            by - 1, math.abs(dstEdge - srcEdge), 2)
+        for i=1,3 do
+            local x = dstEdge - direction * (8 - i * 3)
+            Stroke(link.tips[i], view.panel, x, by - (6 - i * 2),
+                2, 11 - i * 4)
+        end
+    else
+        -- An unusual or invalid DBC relationship must not draw a misleading
+        -- backward arrow; the engine still validates the prerequisite.
+        HideLink(link)
+    end
+end
+
+local function RefreshPrerequisiteLinks(view, tree, era)
+    local used = 0
+    local lookup = {}
+    for _, talent in ipairs(tree[4]) do lookup[talent[1]] = talent end
+
+    for _, target in ipairs(tree[4]) do
+        local requirement = target[7]
+        local origin = requirement and requirement ~= 0 and lookup[requirement]
+        if origin and M:Available(target, tree, era) and
+            M:Available(origin, tree, era) then
+            used = used + 1
+            local link = view.links[used]
+            if not link then
+                link = NewPrerequisiteLink(view.panel)
+                view.links[used] = link
+            end
+            local requiredRank = (target[8] or 0) + 1
+            local fulfilled = (M.points[requirement] or 0) >= requiredRank
+            DrawLink(view, link, origin, target, fulfilled)
+        end
+    end
+
+    for i=used+1,#view.links do HideLink(view.links[i]) end
+    view.activeLinks = used
 end
 
 local function UpdateLayout()
@@ -320,10 +448,14 @@ local function CreateWindow()
         panel:SetBackdropColor(0.04, 0.035, 0.05, 0.96)
         panel:SetBackdropBorderColor(0.55, 0.43, 0.23, 1)
 
-        -- BACKGROUND-layer tiles were hidden behind the nearly opaque
-        -- backdrop in actual 3.3.5a client screenshots. Render the spec
-        -- artwork on a low ARTWORK sublayer, ABOVE the backdrop, with a
-        -- separate translucent veil one sublayer higher.
+        -- The full-height underlay catches transparent/unpainted edges of
+        -- the native four-part spec artwork, especially in Vanilla rows 6-7.
+        local artFill = panel:CreateTexture(nil, "ARTWORK", -6)
+        artFill:SetAllPoints(panel)
+        artFill:SetVertexColor(0.70, 0.70, 0.70, 0.52)
+        artFill:Hide()
+
+        -- Draw four original Blizzard tiles on top, with a subtle veil.
         local art = {}
         local suffixes = {"TopLeft", "TopRight", "BottomLeft", "BottomRight"}
         local anchors = {"TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT"}
@@ -361,7 +493,11 @@ local function CreateWindow()
         local count = Label(panel, "GameFontHighlightSmall", "",
             LAYOUT.panelWidth - 64, -11, 52)
         count:SetJustifyH("RIGHT")
-        trees[i] = {panel=panel, title=name, count=count, art=art, artSuffixes=suffixes, veil=veil}
+        trees[i] = {
+            panel=panel, title=name, count=count, art=art,
+            artSuffixes=suffixes, artFill=artFill, veil=veil,
+            links={}, activeLinks=0
+        }
     end
 
     -- All code sharing happens through the input field. Show code places a
@@ -442,7 +578,11 @@ function M:RefreshUI()
         window.budget:SetText("")
         window.className:SetText("")
         for _, button in ipairs(buttons) do button:Hide() end
-        for _, tree in ipairs(trees) do tree.panel:Hide() end
+        for _, tree in ipairs(trees) do
+            tree.panel:Hide()
+            for _, link in ipairs(tree.links) do HideLink(link) end
+            tree.activeLinks = 0
+        end
         return
     end
 
@@ -465,6 +605,7 @@ function M:RefreshUI()
         SetTreeBackground(view, self.class, tree[2], panelHeight)
         view.title:SetText(tree[2])
         view.count:SetText(self:TreeSpent(tree) .. " pts")
+        RefreshPrerequisiteLinks(view, tree, self.era)
         for _, talent in ipairs(tree[4]) do
             if self:Available(talent, tree) then
                 poolIndex = poolIndex + 1
