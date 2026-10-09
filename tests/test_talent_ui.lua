@@ -24,7 +24,8 @@ function model:SetBackdrop() end
 function model:SetBackdropColor() end
 function model:SetBackdropBorderColor() end
 function model:SetTexture(t) self.texture=t end
-function model:SetVertexColor() end
+function model:SetVertexColor(...) self.tint={...} end
+function model:SetDesaturated(value) self.desaturated=value end
 function model:SetHighlightTexture() end
 function model:SetFrameStrata() end
 function model:SetToplevel() end
@@ -88,6 +89,33 @@ end
 local vanilla=visibleTalentButtons()
 assert(vanilla==expected(),"Vanilla UI must render all and only allowed talents")
 
+-- Requirement-locked icons must actually become grey/desaturated,
+-- not only show a subdued border. First-row talents stay vibrant.
+local initialUnlocked, initialLocked
+for _, button in ipairs(frames) do
+    if button.visible and button.talent then
+        if button.talent[2] == 0 and not button.lockReason then
+            initialUnlocked = button
+        end
+        if button.talent[2] >= 1 and button.lockReason then
+            initialLocked = button
+        end
+    end
+end
+assert(initialUnlocked and initialLocked,
+    "Expected a selectable first row and an unavailable later row")
+assert(initialUnlocked.icon.desaturated == false,
+    "Purchasable talent should retain its colour")
+assert(initialUnlocked.icon.tint[1] == 1,
+    "Purchasable talent icon must not be darkened")
+assert(initialLocked.icon.desaturated == true,
+    "Locked talent should be desaturated")
+assert(initialLocked.icon.tint[1] < 0.5,
+    "Locked talent needs a faded icon as well as a grey border")
+assert(type(initialLocked.lockReason) == "string" and
+    initialLocked.lockReason:find("requires",1,true),
+    "Unavailable talent should explain the prerequisite or row points")
+
 M:SetProgression("tbc",8)
 local tbc=visibleTalentButtons()
 assert(tbc==expected(),"TBC UI must render all and only allowed talents")
@@ -110,6 +138,10 @@ local rankBefore=M.points[first.talent[1]] or 0
 first.scripts.OnClick(first,"LeftButton")
 assert((M.points[first.talent[1]] or 0)==rankBefore+1,
     "Left click must allocate a planner point")
+assert(first.icon.desaturated == false,
+    "Allocated talents should never look greyed out")
+assert(first.icon.tint[1] == 1 and first.border.tint[2] > 0.9,
+    "Allocated talents should have full-colour icon and green border")
 local code=M:ExportCode()
 window.exportButton.scripts.OnClick(window.exportButton)
 assert(window.code:GetText()==code and window.code.selected,
