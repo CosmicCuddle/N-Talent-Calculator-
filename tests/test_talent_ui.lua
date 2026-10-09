@@ -38,7 +38,11 @@ function model:RegisterForDrag() end
 function model:RegisterForClicks() end
 function model:SetClampedToScreen() end
 function model:SetScript(e,f) self.scripts[e]=f end
-function model:CreateFontString() return create() end
+function model:CreateFontString()
+    local label = create()
+    label.parent = self
+    return label
+end
 function model:CreateTexture(name, drawLayer, sublevel)
     local texture = create()
     texture.parent = self
