@@ -1,0 +1,7 @@
+# Generated only by the approved, checksum-pinned CI build.
+NTalentCalculator/Data.lua
+# Local website source checkout used to generate Data.lua.
+talent-source/
+dist/
+__pycache__/
+*.pyc
