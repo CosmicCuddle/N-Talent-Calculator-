@@ -80,6 +80,31 @@ M:SetProgression("vanilla",1)
 M:ToggleWindow()
 local window=NTalentCalculatorFrame
 assert(window and window:IsShown(), "Talent UI failed to open")
+assert(window.width == 940 and window.height == 560,
+    "Compact Vanilla planner must use the reviewed 940px layout")
+assert(window.code.width == 552, "Code box must leave room for its buttons")
+assert(43 + window.code.width + 15 <=
+    window.width - 226 - window.exportButton.width,
+    "Code box must never overlap the Show code button")
+assert(window.className.justify == "CENTER" or window.className.justify == nil,
+    "Class controls should be visually grouped")
+local panelFrames = {}
+for _, frame in ipairs(frames) do
+    if frame.parent == window and frame.kind == "Frame" and
+       frame.width == 282 then
+        panelFrames[#panelFrames + 1] = frame
+    end
+end
+assert(#panelFrames == 3, "Expected three identically sized compact tree panels")
+for index, panel in ipairs(panelFrames) do
+    assert(panel.pos[4] == 31 + (index - 1) * 298 and
+        panel.pos[5] == -129,
+        "Tree panels should align to symmetric 31px margins and 16px gaps")
+    assert(panel.height == 325,
+        "Vanilla panel should fit its seven rows without surplus empty space")
+end
+assert(window.height - (129 + panelFrames[1].height) - 80 >= 20,
+    "Keep breathing room between bottom of talents and share-code section")
 assert(#UISpecialFrames == 1 and UISpecialFrames[1] == "NTalentCalculatorFrame",
     "WoW must recognize the window as closable with Escape")
 assert(window.era.text:find("Vanilla",1,true))
@@ -208,6 +233,13 @@ assert(first.icon.tint[1] == 1 and first.border.tint[2] > 0.9,
     "Allocated talents should have full-colour icon and green border")
 assert(first.border.allPoints == first,
     "Slot frame must fit the talent button with no protruding border")
+assert(first.rankBacking and first.rankBacking.width == 25 and
+    first.rankBacking.height == 11 and
+    first.rankBacking.tint[4] >= 0.8,
+    "Talent rank text requires a small opaque backing within the icon")
+assert(first.rank.pos and first.rank.pos[4] == -2 and
+    first.rank.pos[5] == 1,
+    "Rank counter should remain inside the talent slot")
 assert(first.level and first.level >= 4,
     "Talent buttons must render above their spec artwork")
 assert(first.border.backdrop and first.border.backdrop.edgeSize == 2,
