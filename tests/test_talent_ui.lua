@@ -21,7 +21,7 @@ function model:SetAllPoints(target) self.allPoints = target or self.parent end
 function model:SetText(t) self.text=t end
 function model:GetText() return self.text end
 function model:SetTextColor() end
-function model:SetJustifyH() end
+function model:SetJustifyH(value) self.justify = value end
 function model:SetShadowOffset() end
 function model:SetBackdrop(value) self.backdrop=value end
 function model:SetBackdropColor() end
@@ -86,7 +86,7 @@ assert(window.code.width == 552, "Code box must leave room for its buttons")
 assert(43 + window.code.width + 15 <=
     window.width - 226 - window.exportButton.width,
     "Code box must never overlap the Show code button")
-assert(window.className.justify == "CENTER" or window.className.justify == nil,
+assert(window.className.justify == "CENTER" and window.budget.justify == "CENTER",
     "Class controls should be visually grouped")
 local panelFrames = {}
 for _, frame in ipairs(frames) do
