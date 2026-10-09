@@ -13,6 +13,8 @@ function model:GetWidth() return self.width end
 function model:GetHeight() return self.height end
 function model:SetSize(w,h) self.width=w self.height=h end
 function model:SetScale(s) self.scale=s end
+function model:GetFrameLevel() return self.level or 1 end
+function model:SetFrameLevel(level) self.level=level end
 function model:SetPoint(...) self.pos={...} end
 function model:ClearAllPoints() self.pos=nil end
 function model:SetAllPoints(target) self.allPoints = target or self.parent end
@@ -37,9 +39,11 @@ function model:RegisterForClicks() end
 function model:SetClampedToScreen() end
 function model:SetScript(e,f) self.scripts[e]=f end
 function model:CreateFontString() return create() end
-function model:CreateTexture()
+function model:CreateTexture(name, drawLayer, sublevel)
     local texture = create()
     texture.parent = self
+    texture.drawLayer = drawLayer
+    texture.sublevel = sublevel
     textures[#textures + 1] = texture
     return texture
 end
@@ -114,6 +118,18 @@ local function AssertThreeSpecBackgrounds(class)
     assert(count == 12 and imageCount == 3,
         class .. " needs twelve real art tiles for exactly three distinct trees; got " ..
         count .. " pieces / " .. imageCount .. " specs")
+    -- Images on the BACKGROUND layer were occluded by the nearly opaque
+    -- tree-panel backdrop in a real client. The rendered tiles now must
+    -- sit on low ARTWORK sublayers ahead of the panel backdrop.
+    for _, texture in ipairs(textures) do
+        if texture.texture and texture.visible and
+            texture.texture:find("^Interface\\TalentFrame\\") then
+            assert(texture.drawLayer == "ARTWORK" and texture.sublevel == -5,
+                "Native talent art must render above the tree backdrop")
+            assert(texture.tint and texture.tint[4] >= 0.80,
+                "Native talent art must not be almost invisible")
+        end
+    end
 end
 
 local vanilla=visibleTalentButtons()
@@ -192,6 +208,8 @@ assert(first.icon.tint[1] == 1 and first.border.tint[2] > 0.9,
     "Allocated talents should have full-colour icon and green border")
 assert(first.border.allPoints == first,
     "Slot frame must fit the talent button with no protruding border")
+assert(first.level and first.level >= 4,
+    "Talent buttons must render above their spec artwork")
 assert(first.border.backdrop and first.border.backdrop.edgeSize == 2,
     "Use a precise 2px edge rather than misaligned Quickslot art")
 assert(first.icon.pos and first.icon.pos[1] == "BOTTOMRIGHT" and
