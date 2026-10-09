@@ -194,7 +194,7 @@ assert(first.border.allPoints == first,
     "Slot frame must fit the talent button with no protruding border")
 assert(first.border.backdrop and first.border.backdrop.edgeSize == 2,
     "Use a precise 2px edge rather than misaligned Quickslot art")
-assert(first.icon.pos and first.icon.pos[5] == 2,
+assert(first.icon.pos and first.icon.pos[4] == 2 and first.icon.pos[5] == -2,
     "Talent icon must be inset within the 35x35 border")
 local code=M:ExportCode()
 window.exportButton.scripts.OnClick(window.exportButton)
