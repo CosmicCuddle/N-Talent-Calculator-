@@ -8,7 +8,7 @@ An experimental **WoW 3.3.5a talent calculator for the Naxxramas AzerothCore ser
 
 - Shows three talent trees, talent icons, current/next rank spell descriptions and a planner point budget.
 - **Greys out and fades unavailable talents** until enough earlier-row points or prerequisite talent ranks have been invested. Hover for the exact requirement; already-selected talents remain vibrant.
-- Displays authentic, subdued **Blizzard 3.3.5a spec backgrounds** for all 30 trees using art already inside the WoW client (no external artwork files or downloads).
+- Displays authentic **Blizzard 3.3.5a specialization artwork** for all 30 trees using textures already in the WoW client, rendered in front of the dark panel backdrop so the artwork is actually visible while talent icons stay in the foreground.
 - Uses precisely fitted talent icon frames with a 2px border; **Escape** closes the planner, including when the share-code text field has focus.
 - Reads **Individual Progression tiers** using the existing server read-only `.ipsvc data` protocol (`##IPSVC##PD~<tier>`), with completed milestone quests as a fallback.
 - Restricts Vanilla tiers 0–7 to rows 1–6 plus a single capstone in row 7; TBC tiers 8–12 to rows 1–8 plus a single capstone in row 9; WotLK tiers 13+ to all 11 rows.
@@ -33,7 +33,7 @@ An experimental **WoW 3.3.5a talent calculator for the Naxxramas AzerothCore ser
 
 1. Back up your existing `Interface/AddOns/NTalentCalculator/` folder if it exists and the corresponding account `WTF/.../SavedVariables/NTalentCalculator.lua` file.
 2. Open the newest successful **Validate and package Talent Calculator** GitHub Actions run for this branch/PR.
-3. Download the `n-talent-calculator-test` artifact, then open the inner `N-Talent-Calculator-v0.1.0-alpha.3.zip` inside it.
+3. Download the `n-talent-calculator-test` artifact, then open the inner `N-Talent-Calculator-v0.1.0-alpha.4.zip` inside it.
 4. Extract the **one** `NTalentCalculator` folder directly into `World of Warcraft/Interface/AddOns/`.
 5. Start WoW 3.3.5a; enable `N Talent Calculator` in the AddOns screen, and type `/ntalent`.
 
@@ -60,6 +60,6 @@ Offline tests cover data origin, Lua 5.1 syntax, Vanilla/TBC/WotLK visibility, c
 
 Work on development branches and review pull requests before publishing releases. The current N Addon Collection v1.0.0 remains intact. To roll back this addon, close WoW, restore your backed-up `NTalentCalculator` folder and optionally saved builds if needed.
 
-**Known remaining work:** Verify the new per-spec client background art and fitted icon borders across all 30 specializations and UI scales; validate complex cross-platform NT1 codes, IP tier transitions, precise rank effects, saved builds and optional module enable/disable after Reload UI.
+**Known remaining work:** Verify the corrected visible client-native backgrounds across all 30 specializations and UI scales; validate complex cross-platform NT1 codes, IP tier transitions, precise rank effects, saved builds and optional module enable/disable after Reload UI.
 
 See [the collection integration PR](https://github.com/CosmicCuddle/N-Addon-Collection/pull/5) for experimental v2 suite integration.
