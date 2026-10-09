@@ -1,0 +1,59 @@
+name: Validate and package Talent Calculator
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout calculator
+        uses: actions/checkout@v4
+
+      - name: Checkout approved server talent snapshot
+        uses: actions/checkout@v4
+        with:
+          repository: CosmicCuddle/Naxxramas-Resource-Hub
+          ref: e2e861d05c4f3d13f850886c973cb66bc60cc849
+          path: talent-source
+          persist-credentials: false
+
+      - name: Generate custom DBC talent database
+        run: |
+          python3 scripts/build_talent_data.py --source talent-source --output NTalentCalculator/Data.lua
+
+      - name: Validate Python packaging and manifest
+        run: |
+          python3 -m compileall -q scripts
+          python3 -m json.tool config/talent-data.json > /dev/null
+          python3 -m unittest discover -s scripts -p 'test_*.py' -v
+          python3 scripts/build_addon.py --output-dir dist
+
+      - name: Install Lua 5.1
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y lua5.1
+
+      - name: Check complete Lua syntax and calculator features
+        run: |
+          set -euo pipefail
+          luac5.1 -p NTalentCalculator/Data.lua
+          luac5.1 -p NTalentCalculator/Engine.lua NTalentCalculator/Progression.lua NTalentCalculator/UI.lua
+          lua5.1 tests/test_talent_dataset.lua
+          lua5.1 tests/test_talent_engine.lua
+          lua5.1 tests/test_talent_progression.lua
+          lua5.1 tests/test_talent_ui.lua
+
+      - name: Publish install-ready test ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: n-talent-calculator-test
+          path: dist/N-Talent-Calculator-*.zip
+          if-no-files-found: error
