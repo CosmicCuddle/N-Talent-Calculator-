@@ -268,7 +268,8 @@ local function DrawLink(view, link, origin, target, fulfilled)
     local toLane = bx - direction * (18 + gutter)
     if aCol == bCol then toLane = fromLane end
     local fromEdge = ax + direction * 18
-    local toEdge = bx - direction * 18
+    local toEdge = bCol == aCol and bx + direction * 18
+        or bx - direction * 18
 
     -- For two different rows, bridge lanes in the first 4px row gap,
     -- keeping long vertical runs inside icon-free column gutters.
@@ -288,7 +289,7 @@ local function DrawLink(view, link, origin, target, fulfilled)
 
     -- Compact, recognisable chevron located beside (not over) the destination
     -- slot. It always points towards the required target talent.
-    local arrow = direction == 1 and 1 or -1
+    local arrow = bCol == aCol and -direction or direction
     for i=1,3 do
         local distance = 9 - i * 3
         local arrowX = toEdge - arrow * distance
