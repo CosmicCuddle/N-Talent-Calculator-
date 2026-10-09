@@ -124,7 +124,8 @@ local function UpdateTalentAppearance(button, rank, reason)
     end
 end
 
--- Exact 3.3.5a TalentTab.dbc BackgroundFile names. They deliberately
+-- Exact 3.3.5a TalentTab.dbc BackgroundFile names (Blizzard TalentFrameBase.lua).
+-- A background texture is drawn ABOVE the panel backdrop, not behind it. They deliberately
 -- differ from specialization titles for several specs (e.g. WarlockCurses).
 -- Blizzard already ships these four-piece TalentFrame textures with WoW:
 -- no extra image files, internet requests or third-party art licences.
@@ -241,33 +242,37 @@ local function CreateWindow()
         panel:SetBackdropColor(0.04, 0.035, 0.05, 0.96)
         panel:SetBackdropBorderColor(0.55, 0.43, 0.23, 1)
 
-        -- Four classic Blizzard spec artwork tiles: no source downloads.
-        -- The bitmap remains muted behind buttons and text.
+        -- BACKGROUND-layer tiles were hidden behind the nearly opaque
+        -- backdrop in actual 3.3.5a client screenshots. Render the spec
+        -- artwork on a low ARTWORK sublayer, ABOVE the backdrop, with a
+        -- separate translucent veil one sublayer higher.
         local art = {}
         local suffixes = {"TopLeft", "TopRight", "BottomLeft", "BottomRight"}
         local anchors = {"TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT"}
         for tileIndex=1,4 do
-            local piece = panel:CreateTexture(nil, "BACKGROUND", 1)
+            local piece = panel:CreateTexture(nil, "ARTWORK", -5)
             piece:SetPoint(anchors[tileIndex], panel, anchors[tileIndex])
             piece:SetWidth(154)
             piece:SetHeight(245)
-            piece:SetVertexColor(0.66, 0.66, 0.66, 0.58)
+            -- Authentic Blizzard artwork should be visible, while retaining
+            -- enough contrast for disabled talents and rank counters.
+            piece:SetVertexColor(0.89, 0.86, 0.81, 0.90)
             art[tileIndex] = piece
         end
-        local veil = panel:CreateTexture(nil, "BORDER")
+        local veil = panel:CreateTexture(nil, "ARTWORK", -4)
         veil:SetTexture("Interface\\Buttons\\WHITE8X8")
         veil:SetAllPoints(panel)
-        veil:SetVertexColor(0.015, 0.012, 0.018, 0.45)
+        veil:SetVertexColor(0.018, 0.015, 0.022, 0.28)
 
-        -- Dark title bar and fine gold accent, kept above the artwork.
-        local titleBar = panel:CreateTexture(nil, "ARTWORK")
+        -- Dark title bar and fine gold accent, above artwork and veil.
+        local titleBar = panel:CreateTexture(nil, "ARTWORK", 1)
         titleBar:SetTexture("Interface\\Buttons\\WHITE8X8")
         titleBar:SetPoint("TOPLEFT", panel, "TOPLEFT", 3, -3)
         titleBar:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -3, -3)
         titleBar:SetHeight(34)
         titleBar:SetVertexColor(0.025, 0.021, 0.025, 0.85)
 
-        local titleLine = panel:CreateTexture(nil, "ARTWORK")
+        local titleLine = panel:CreateTexture(nil, "ARTWORK", 2)
         titleLine:SetTexture("Interface\\Buttons\\WHITE8X8")
         titleLine:SetPoint("TOPLEFT", panel, "TOPLEFT", 9, -37)
         titleLine:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -9, -37)
@@ -277,7 +282,7 @@ local function CreateWindow()
         local name = Label(panel, "GameFontNormal", "", 14, -10, 200)
         local count = Label(panel, "GameFontHighlightSmall", "", 243, -10, 55)
         count:SetJustifyH("RIGHT")
-        trees[i] = {panel=panel, title=name, count=count, art=art, artSuffixes=suffixes}
+        trees[i] = {panel=panel, title=name, count=count, art=art, artSuffixes=suffixes, veil=veil}
     end
 
     -- All code sharing happens through the input field. Show code places a
@@ -388,6 +393,10 @@ function M:RefreshUI()
                     button = NewTalentButton(window)
                     buttons[poolIndex] = button
                 end
+                -- Talent buttons are parented to the main window and can
+                -- otherwise render under a tree panel's ARTWORK layer.
+                -- Put their frame level above both the art and the veil.
+                button:SetFrameLevel(view.panel:GetFrameLevel() + 3)
                 local row, col = talent[2], talent[3]
                 button:ClearAllPoints()
                 button:SetPoint("TOPLEFT", view.panel, "TOPLEFT",
