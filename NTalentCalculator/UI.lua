@@ -1,6 +1,7 @@
 -- N Talent Calculator - visual, read-only 3-tree planner (WoW 3.3.5a).
 -- Share/import the exact NT1 codes used on Naxxramas Resource Hub.
 -- Select text and use Ctrl+C to copy: 3.3.5a has no clipboard-write API.
+-- Uses WoW's native TalentFrame artwork and UISpecialFrames Escape handling.
 
 local M = NTalentCalculator
 local window
@@ -59,13 +60,26 @@ local function NewTalentButton(parent)
     local button = CreateFrame("Button", nil, parent)
     button:SetSize(35, 35)
     button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    -- Crisp 35x35 talent slot: border hugs the button, with a 2px inset
+    -- icon. The previous Quickslot2 texture protruded beyond the icon.
+    local shadow = button:CreateTexture(nil, "BACKGROUND")
+    shadow:SetTexture("Interface\\Buttons\\WHITE8X8")
+    shadow:SetPoint("TOPLEFT", button, "TOPLEFT", -1, 1)
+    shadow:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 1, -1)
+    shadow:SetVertexColor(0, 0, 0, 0.75)
+
     local icon = button:CreateTexture(nil, "ARTWORK")
-    icon:SetAllPoints(button)
+    icon:SetPoint("TOPLEFT", button, "TOPLEFT", 2, -2)
+    icon:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -2, 2)
     button.icon = icon
-    local border = button:CreateTexture(nil, "OVERLAY")
-    border:SetTexture("Interface\\Buttons\\UI-Quickslot2")
-    border:SetPoint("TOPLEFT", button, "TOPLEFT", -3, 3)
-    border:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 3, -3)
+
+    local border = CreateFrame("Frame", nil, button)
+    border:SetAllPoints(button)
+    border:SetBackdrop({
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = 2,
+        insets = {left=0, right=0, top=0, bottom=0}
+    })
     button.border = border
     button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
     local rank = button:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
@@ -100,13 +114,52 @@ local function UpdateTalentAppearance(button, rank, reason)
     end
     if locked then
         button.icon:SetVertexColor(0.43, 0.43, 0.43)
-        button.border:SetVertexColor(0.36, 0.36, 0.36)
+        button.border:SetBackdropBorderColor(0.36, 0.36, 0.36)
     elseif rank > 0 then
         button.icon:SetVertexColor(1, 1, 1)
-        button.border:SetVertexColor(0.22, 0.95, 0.30)
+        button.border:SetBackdropBorderColor(0.22, 0.95, 0.30)
     else
         button.icon:SetVertexColor(1, 1, 1)
-        button.border:SetVertexColor(0.90, 0.75, 0.27)
+        button.border:SetBackdropBorderColor(0.90, 0.75, 0.27)
+    end
+end
+
+-- Exact 3.3.5a TalentTab.dbc BackgroundFile names. They deliberately
+-- differ from specialization titles for several specs (e.g. WarlockCurses).
+-- Blizzard already ships these four-piece TalentFrame textures with WoW:
+-- no extra image files, internet requests or third-party art licences.
+local SPEC_BACKGROUNDS = {
+    warrior = {arms="WarriorArms", fury="WarriorFury", protection="WarriorProtection"},
+    paladin = {holy="PaladinHoly", protection="PaladinProtection", retribution="PaladinCombat"},
+    hunter = {beastmastery="HunterBeastMastery", marksmanship="HunterMarksmanship", survival="HunterSurvival"},
+    rogue = {assassination="RogueAssassination", combat="RogueCombat", subtlety="RogueSubtlety"},
+    priest = {discipline="PriestDiscipline", holy="PriestHoly", shadow="PriestShadow"},
+    deathknight = {blood="DeathKnightBlood", frost="DeathKnightFrost", unholy="DeathKnightUnholy"},
+    shaman = {elemental="ShamanElementalCombat", enhancement="ShamanEnhancement", restoration="ShamanRestoration"},
+    mage = {arcane="MageArcane", fire="MageFire", frost="MageFrost"},
+    warlock = {affliction="WarlockCurses", demonology="WarlockSummoning", destruction="WarlockDestruction"},
+    druid = {balance="DruidBalance", feralcombat="DruidFeralCombat", restoration="DruidRestoration"}
+}
+
+local function SpecTextureBase(class, treeName)
+    local specs = SPEC_BACKGROUNDS[class]
+    local key = type(treeName) == "string" and
+        treeName:lower():gsub("[^a-z]", "") or ""
+    local basename = specs and specs[key]
+    if not basename then return nil end
+    return "Interface\\TalentFrame\\" .. basename .. "-"
+end
+
+local function SetTreeBackground(view, class, treeName, panelHeight)
+    local base = SpecTextureBase(class, treeName)
+    for index, piece in ipairs(view.art) do
+        piece:SetHeight(panelHeight / 2)
+        if base then
+            piece:SetTexture(base .. view.artSuffixes[index])
+            piece:Show()
+        else
+            piece:Hide()
+        end
     end
 end
 
@@ -126,6 +179,14 @@ end
 local function CreateWindow()
     if window then return window end
     window = CreateFrame("Frame", "NTalentCalculatorFrame", UIParent)
+    -- Blizzard's Escape-key close mechanism for named WoW UI windows.
+    if type(UISpecialFrames) == "table" then
+        local registered = false
+        for _, name in ipairs(UISpecialFrames) do
+            if name == "NTalentCalculatorFrame" then registered = true break end
+        end
+        if not registered then table.insert(UISpecialFrames, "NTalentCalculatorFrame") end
+    end
     window:SetWidth(1030)
     window:SetHeight(730)
     window:SetPoint("CENTER", UIParent, "CENTER")
@@ -177,12 +238,46 @@ local function CreateWindow()
             tile = false, edgeSize = 14,
             insets = {left=3,right=3,top=3,bottom=3}
         })
-        panel:SetBackdropColor(0.085, 0.08, 0.105, 0.90)
-        panel:SetBackdropBorderColor(0.43, 0.35, 0.21, 1)
+        panel:SetBackdropColor(0.04, 0.035, 0.05, 0.96)
+        panel:SetBackdropBorderColor(0.55, 0.43, 0.23, 1)
+
+        -- Four classic Blizzard spec artwork tiles: no source downloads.
+        -- The bitmap remains muted behind buttons and text.
+        local art = {}
+        local suffixes = {"TopLeft", "TopRight", "BottomLeft", "BottomRight"}
+        local anchors = {"TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT"}
+        for tileIndex=1,4 do
+            local piece = panel:CreateTexture(nil, "BACKGROUND", 1)
+            piece:SetPoint(anchors[tileIndex], panel, anchors[tileIndex])
+            piece:SetWidth(154)
+            piece:SetHeight(245)
+            piece:SetVertexColor(0.66, 0.66, 0.66, 0.58)
+            art[tileIndex] = piece
+        end
+        local veil = panel:CreateTexture(nil, "BORDER")
+        veil:SetTexture("Interface\\Buttons\\WHITE8X8")
+        veil:SetAllPoints(panel)
+        veil:SetVertexColor(0.015, 0.012, 0.018, 0.45)
+
+        -- Dark title bar and fine gold accent, kept above the artwork.
+        local titleBar = panel:CreateTexture(nil, "ARTWORK")
+        titleBar:SetTexture("Interface\\Buttons\\WHITE8X8")
+        titleBar:SetPoint("TOPLEFT", panel, "TOPLEFT", 3, -3)
+        titleBar:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -3, -3)
+        titleBar:SetHeight(34)
+        titleBar:SetVertexColor(0.025, 0.021, 0.025, 0.85)
+
+        local titleLine = panel:CreateTexture(nil, "ARTWORK")
+        titleLine:SetTexture("Interface\\Buttons\\WHITE8X8")
+        titleLine:SetPoint("TOPLEFT", panel, "TOPLEFT", 9, -37)
+        titleLine:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -9, -37)
+        titleLine:SetHeight(1)
+        titleLine:SetVertexColor(0.75, 0.56, 0.20, 0.55)
+
         local name = Label(panel, "GameFontNormal", "", 14, -10, 200)
         local count = Label(panel, "GameFontHighlightSmall", "", 243, -10, 55)
         count:SetJustifyH("RIGHT")
-        trees[i] = {panel=panel, title=name, count=count}
+        trees[i] = {panel=panel, title=name, count=count, art=art, artSuffixes=suffixes}
     end
 
     -- All code sharing happens through the input field. Show code places a
@@ -197,7 +292,10 @@ local function CreateWindow()
     window.code:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", 43, 44)
     window.code:SetAutoFocus(false)
     window.code:SetMaxLetters(2000)
-    window.code:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    window.code:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+        window:Hide()
+    end)
     window.code:SetScript("OnEnterPressed", function(self)
         local ok, reason = M:ImportCode(self:GetText())
         if not ok then M:Print(reason) else M:Print("Build imported.") end
@@ -277,7 +375,9 @@ function M:RefreshUI()
     for index, tree in ipairs(self:GetTrees()) do
         local view = trees[index]
         view.panel:Show()
-        view.panel:SetHeight((rule.maxRow + 1) * 40 + 54)
+        local panelHeight = (rule.maxRow + 1) * 40 + 54
+        view.panel:SetHeight(panelHeight)
+        SetTreeBackground(view, self.class, tree[2], panelHeight)
         view.title:SetText(tree[2])
         view.count:SetText(self:TreeSpent(tree) .. " pts")
         for _, talent in ipairs(tree[4]) do
