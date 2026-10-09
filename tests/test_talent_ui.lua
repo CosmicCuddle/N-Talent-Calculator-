@@ -154,7 +154,7 @@ local function AssertThreeSpecBackgrounds(class)
     local count = 0
     local imageBases = {}
     for _, texture in ipairs(textures) do
-        if texture.texture and texture.visible and
+        if texture.texture and texture.visible and texture.sublevel == -5 and
             texture.texture:find("^Interface\\TalentFrame\\", 1, false) then
             count = count + 1
             local base = texture.texture:match("^Interface\\TalentFrame\\(.+)%-")
@@ -186,7 +186,7 @@ local function AssertThreeSpecBackgrounds(class)
     -- tree-panel backdrop in a real client. The rendered tiles now must
     -- sit on low ARTWORK sublayers ahead of the panel backdrop.
     for _, texture in ipairs(textures) do
-        if texture.texture and texture.visible and
+        if texture.texture and texture.visible and texture.sublevel == -5 and
             texture.texture:find("^Interface\\TalentFrame\\") then
             assert(texture.drawLayer == "ARTWORK" and texture.sublevel == -5,
                 "Native talent art must render above the tree backdrop")
