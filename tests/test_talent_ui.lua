@@ -80,7 +80,7 @@ M:SetProgression("vanilla",1)
 M:ToggleWindow()
 local window=NTalentCalculatorFrame
 assert(window and window:IsShown(), "Talent UI failed to open")
-assert(window.width == 940 and window.height == 560,
+assert(window.width == 940 and window.height == 550,
     "Compact Vanilla planner must use the reviewed 940px layout")
 assert(window.code.width == 552, "Code box must leave room for its buttons")
 assert(43 + window.code.width + 15 <=
@@ -88,6 +88,25 @@ assert(43 + window.code.width + 15 <=
     "Code box must never overlap the Show code button")
 assert(window.className.justify == "CENTER" and window.budget.justify == "CENTER",
     "Class controls should be visually grouped")
+local header = window.headerBar
+assert(header and header.parent == window and
+       header.width == 878 and header.height == 52,
+    "The status and class controls must share one compact header bar")
+assert(header.pos and header.pos[4] == 31 and header.pos[5] == -60,
+    "Header bar must align with the three talent panels")
+assert(header.backdrop and header.backdrop.edgeSize == 12,
+    "Native WoW framed background is required on the new header")
+assert(window.previous.parent == header and window.nextClass.parent == header,
+    "Previous/next class buttons must belong to the grouped status bar")
+assert(window.className.parent == header and window.budget.parent == header and
+       window.era.parent == header and window.tierLabel.parent == header,
+    "Tier, class and talent budget must remain visually grouped")
+assert(window.previous.pos[4] == 320 and window.nextClass.pos[4] == 566,
+    "Class controls should use short, compact navigation buttons")
+assert(window.tierLabel.text:find("TIER 1", 1, true),
+    "The header must report the authoritative progression tier")
+assert(window.era.text:find("Rows 1-7", 1, true),
+    "The header must still communicate visible talent rows")
 local panelFrames = {}
 for _, frame in ipairs(frames) do
     if frame.parent == window and frame.kind == "Frame" and
@@ -98,12 +117,12 @@ end
 assert(#panelFrames == 3, "Expected three identically sized compact tree panels")
 for index, panel in ipairs(panelFrames) do
     assert(panel.pos[4] == 31 + (index - 1) * 298 and
-        panel.pos[5] == -129,
+        panel.pos[5] == -119,
         "Tree panels should align to symmetric 31px margins and 16px gaps")
     assert(panel.height == 325,
         "Vanilla panel should fit its seven rows without surplus empty space")
 end
-assert(window.height - (129 + panelFrames[1].height) - 80 >= 20,
+assert(window.height - (119 + panelFrames[1].height) - 80 >= 20,
     "Keep breathing room between bottom of talents and share-code section")
 assert(#UISpecialFrames == 1 and UISpecialFrames[1] == "NTalentCalculatorFrame",
     "WoW must recognize the window as closable with Escape")
