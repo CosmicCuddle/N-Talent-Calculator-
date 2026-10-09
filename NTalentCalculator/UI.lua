@@ -48,6 +48,9 @@ local function ShowTooltip(button)
     end
     if count > 0 then ShowRank(count, "Current") end
     if count < maxRank then ShowRank(count + 1, "Next") end
+    if button.lockReason and count == 0 then
+        GameTooltip:AddLine("Locked: " .. button.lockReason, 1, 0.42, 0.35, true)
+    end
     GameTooltip:AddLine("Left-click: add rank. Right-click: remove rank.", 0.7, 0.7, 0.7)
     GameTooltip:Show()
 end
@@ -84,6 +87,27 @@ local function NewTalentButton(parent)
     end)
     button:Hide()
     return button
+end
+
+-- The greyed-out state is visual only; M:Validate remains the authority.
+-- Already-ranked talents stay in full colour so players can distinguish
+-- chosen skills from currently unavailable choices.
+local function UpdateTalentAppearance(button, rank, reason)
+    local locked = rank == 0 and reason ~= nil and reason ~= false
+    button.lockReason = locked and reason or nil
+    if button.icon.SetDesaturated then
+        button.icon:SetDesaturated(locked and true or false)
+    end
+    if locked then
+        button.icon:SetVertexColor(0.43, 0.43, 0.43)
+        button.border:SetVertexColor(0.36, 0.36, 0.36)
+    elseif rank > 0 then
+        button.icon:SetVertexColor(1, 1, 1)
+        button.border:SetVertexColor(0.22, 0.95, 0.30)
+    else
+        button.icon:SetVertexColor(1, 1, 1)
+        button.border:SetVertexColor(0.90, 0.75, 0.27)
+    end
 end
 
 local function UpdateLayout()
@@ -278,19 +302,15 @@ function M:RefreshUI()
                 button.talent = talent
                 local rank = self.points[talent[1]] or 0
                 button.rank:SetText(rank .. "/" .. #talent[4])
-                if rank > 0 then
-                    button.border:SetVertexColor(0.2, 0.95, 0.25)
-                else
+                local lockReason
+                if rank == 0 then
                     local trial = {}
-                    for k,v in pairs(self.points) do trial[k] = v end
+                    for k, v in pairs(self.points) do trial[k] = v end
                     trial[talent[1]] = 1
-                    local available = self:Validate(trial)
-                    if available then
-                        button.border:SetVertexColor(0.9, 0.75, 0.27)
-                    else
-                        button.border:SetVertexColor(0.45, 0.45, 0.45)
-                    end
+                    local available, why = self:Validate(trial)
+                    if not available then lockReason = why or "Requirements not met." end
                 end
+                UpdateTalentAppearance(button, rank, lockReason)
                 button:Show()
             end
         end
