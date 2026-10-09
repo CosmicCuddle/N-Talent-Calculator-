@@ -21,7 +21,7 @@ function model:GetText() return self.text end
 function model:SetTextColor() end
 function model:SetJustifyH() end
 function model:SetShadowOffset() end
-function model:SetBackdrop() end
+function model:SetBackdrop(value) self.backdrop=value end
 function model:SetBackdropColor() end
 function model:SetBackdropBorderColor(...) self.tint={...} end
 function model:SetTexture(t) self.texture=t end
