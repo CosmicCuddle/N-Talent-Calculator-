@@ -148,51 +148,33 @@ local function expected()
     return total
 end
 local function AssertThreeSpecBackgrounds(class)
-    -- Authentic four-piece native Blizzard art, without any addon-bundled
-    -- external images or guesses based on tree position.
+    -- One seamless native-client spec image per panel. No more transparent
+    -- 2x2 overlays or enlarged duplicate TopLeft texture (alpha.7 issue).
     assert(M:SetClass(class), "Class should be selectable in WotLK: " .. class)
-    local count = 0
-    local imageBases = {}
+    local artworks, imageBases = {}, {}
     for _, texture in ipairs(textures) do
-        if texture.texture and texture.visible and texture.sublevel == -5 and
-            texture.texture:find("^Interface\\TalentFrame\\", 1, false) then
-            count = count + 1
-            local base = texture.texture:match("^Interface\\TalentFrame\\(.+)%-")
-            if base then imageBases[base] = true end
+        if texture.texture and texture.visible and
+            texture.drawLayer == "ARTWORK" and texture.sublevel == -5 and
+            texture.texture:find("^Interface\\TalentFrame\\") then
+            artworks[#artworks+1] = texture
+            local base = texture.texture:match("^Interface\\TalentFrame\\(.+)%-TopLeft$")
+            assert(base, "Artwork must use one single-piece client background")
+            imageBases[base] = true
         end
     end
     local imageCount = 0
     for _ in pairs(imageBases) do imageCount = imageCount + 1 end
-    assert(count == 12 and imageCount == 3,
-        class .. " needs twelve real art tiles for exactly three distinct trees; got " ..
-        count .. " pieces / " .. imageCount .. " specs")
-
-    local fillers = {}
+    assert(#artworks == 3 and imageCount == 3,
+        class .. " must have exactly one coherent art layer per spec, not stacked tiles")
+    for _, art in ipairs(artworks) do
+        assert(art.allPoints == art.parent,
+            "Spec artwork must fill the entire talent panel")
+        assert(art.tint and art.tint[4] >= 0.65 and art.tint[4] <= 0.80,
+            "Artwork must be visible without overwhelming locked talents")
+    end
     for _, tex in ipairs(textures) do
-        if tex.drawLayer == "ARTWORK" and tex.sublevel == -6 and tex.visible then
-            fillers[#fillers+1] = tex
-        end
-    end
-    assert(#fillers == 3,
-        class .. " should have one full-height spec underlay per panel")
-    for _, fill in ipairs(fillers) do
-        assert(fill.allPoints == fill.parent, "Spec artwork fill must cover the entire panel")
-        assert(fill.texture and fill.texture:find("^Interface\\TalentFrame\\"),
-            "Spec artwork underlay must come from Blizzard's client art")
-        assert(fill.tint[4] >= 0.5 and fill.tint[4] <= 0.65,
-            "The art fill must be visible but subdued")
-    end
-    -- Images on the BACKGROUND layer were occluded by the nearly opaque
-    -- tree-panel backdrop in a real client. The rendered tiles now must
-    -- sit on low ARTWORK sublayers ahead of the panel backdrop.
-    for _, texture in ipairs(textures) do
-        if texture.texture and texture.visible and texture.sublevel == -5 and
-            texture.texture:find("^Interface\\TalentFrame\\") then
-            assert(texture.drawLayer == "ARTWORK" and texture.sublevel == -5,
-                "Native talent art must render above the tree backdrop")
-            assert(texture.tint and texture.tint[4] >= 0.80,
-                "Native talent art must not be almost invisible")
-        end
+        assert(not (tex.visible and tex.sublevel == -6),
+            "Old duplicate fill artwork must not remain visible")
     end
 end
 
@@ -305,9 +287,28 @@ local before = LinkStrokes()
 assert(#before > 0, "Unfulfilled prerequisite links must be displayed")
 local greyStroke = false
 for _, tex in ipairs(before) do
-    if math.abs(tex.tint[1] - 0.54) < 0.01 then greyStroke = true break end
+    if math.abs(tex.tint[1] - 0.80) < 0.01 then greyStroke = true break end
 end
 assert(greyStroke, "Locked prerequisite connector must be grey")
+local hasTrunk, hasHorizontal = false, false
+for _, tex in ipairs(before) do
+    if tex.width and tex.height then
+        if tex.height >= 18 and tex.width <= 3 then hasTrunk = true end
+        if tex.width >= 10 and tex.height <= 3 then hasHorizontal = true end
+    end
+end
+assert(hasTrunk,
+    "Prerequisite connections must extend visibly down an icon-free gutter")
+assert(hasHorizontal,
+    "Prerequisite connectors must attach to a talent icon across the gutter")
+local arrowheads = 0
+for _, tex in ipairs(textures) do
+    if tex.visible and tex.drawLayer == "ARTWORK" and tex.sublevel == -2 then
+        arrowheads = arrowheads + 1
+    end
+end
+assert(arrowheads >= 3,
+    "Every visible prerequisite path needs a distinct arrowhead near its target")
 M.points[candidate[1]] = (expectedTarget[8] or 0) + 1
 M:RefreshUI()
 local greenStroke = false

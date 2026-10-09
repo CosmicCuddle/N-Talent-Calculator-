@@ -12,8 +12,8 @@ An experimental **WoW 3.3.5a talent calculator for the Naxxramas AzerothCore ser
 - Uses precisely fitted talent icon frames with a 2px border; **Escape** closes the planner, including when the share-code text field has focus.
 - Uses a **more compact, balanced interface**: narrower three-tree panels, reduced spacing, grouped class navigation, a clear section divider and readable rank counters that no longer hang outside the icons.
 - **Redesigned header:** A single dark, gold-framed status bar groups Individual Progression tier and visible rows on the left, class navigation in the centre, and the talent-point budget on the right. Less empty space separates the header from the three talent trees.
-- **Artwork that extends behind every visible talent row:** Adds a subdued full-panel native Blizzard art underlay to fill transparent gaps at the bottom of tree backgrounds.
-- **Talent prerequisite connections:** Draws small, unobtrusive arrows/lines for the actual Talent.dbc prerequisite links. Connections are grey while a prerequisite is unmet and turn green when its required rank has been planned. Hidden expansion-locked talents do not draw connectors.
+- **Seamless specialization backgrounds:** Uses one subdued Blizzard client artwork image across each whole panel, removing the visible rectangular overlaps caused by multiple transparent image tiles.
+- **Visible Talent.dbc prerequisite connections:** Connects dependent talents using thicker, higher-contrast lines routed through gaps beside the icons rather than the 4-pixel gaps between rows. Arrows stay grey until the required prerequisite rank is planned, then turn green. Expansion-hidden talents have no connectors.
 - Reads **Individual Progression tiers** using the existing server read-only `.ipsvc data` protocol (`##IPSVC##PD~<tier>`), with completed milestone quests as a fallback.
 - Restricts Vanilla tiers 0–7 to rows 1–6 plus a single capstone in row 7; TBC tiers 8–12 to rows 1–8 plus a single capstone in row 9; WotLK tiers 13+ to all 11 rows.
 - Preserves off-centre server capstones: Stormstrike (901), Dark Pact (1022), Divine Illumination (1747).
@@ -37,7 +37,7 @@ An experimental **WoW 3.3.5a talent calculator for the Naxxramas AzerothCore ser
 
 1. Back up your existing `Interface/AddOns/NTalentCalculator/` folder if it exists and the corresponding account `WTF/.../SavedVariables/NTalentCalculator.lua` file.
 2. Open the newest successful **Validate and package Talent Calculator** GitHub Actions run for this branch/PR.
-3. Download the `n-talent-calculator-test` artifact, then open the inner `N-Talent-Calculator-v0.1.0-alpha.7.zip` inside it.
+3. Download the `n-talent-calculator-test` artifact, then open the inner `N-Talent-Calculator-v0.1.0-alpha.8.zip` inside it.
 4. Extract the **one** `NTalentCalculator` folder directly into `World of Warcraft/Interface/AddOns/`.
 5. Start WoW 3.3.5a; enable `N Talent Calculator` in the AddOns screen, and type `/ntalent`.
 
@@ -64,6 +64,6 @@ Offline tests cover data origin, Lua 5.1 syntax, Vanilla/TBC/WotLK visibility, c
 
 Work on development branches and review pull requests before publishing releases. The current N Addon Collection v1.0.0 remains intact. To roll back this addon, close WoW, restore your backed-up `NTalentCalculator` folder and optionally saved builds if needed.
 
-**Known remaining work:** Verify alpha.7's full-height art and data-driven prerequisite arrows across classes, era limits and UI scales; validate complex cross-platform NT1 codes, IP tier transitions, precise rank effects, saved builds and optional module enable/disable after Reload UI.
+**Known remaining work:** Verify alpha.8's simplified art and visibly routed prerequisite arrows across classes, era limits and UI scales; validate complex cross-platform NT1 codes, IP tier transitions, precise rank effects, saved builds and optional module enable/disable after Reload UI.
 
 See [the collection integration PR](https://github.com/CosmicCuddle/N-Addon-Collection/pull/5) for experimental v2 suite integration.
