@@ -16,6 +16,24 @@ jobs:
     steps:
       - name: Checkout calculator
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require current maintainer roadmap on code PRs
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE_REF"
+          changed="$(git diff --name-only "origin/$BASE_REF"...HEAD)"
+          echo "$changed"
+          if printf '%s\n' "$changed" | grep -Eq '^(NTalentCalculator/|scripts/|tests/|config/|\.github/workflows/)'; then
+            if ! printf '%s\n' "$changed" | grep -Fxq 'ROADMAP.md'; then
+              echo '::error::Update ROADMAP.md with the change, validation and next task.'
+              exit 1
+            fi
+          fi
 
       - name: Checkout approved server talent snapshot
         uses: actions/checkout@v4

@@ -302,3 +302,31 @@ function M:LoadBuild(name)
     end
     return self:ImportCode(saves[name])
 end
+
+-- These helpers use the existing SavedVariables table and never touch live
+-- character talents. The UI can enumerate names deterministically.
+function M:ListBuildNames()
+    local names = {}
+    local saves = NTalentCalculatorDB and NTalentCalculatorDB.builds
+    if type(saves) ~= "table" then return names end
+    for name, code in pairs(saves) do
+        if type(name) == "string" and type(code) == "string" then
+            names[#names+1] = name
+        end
+    end
+    table.sort(names, function(a,b)
+        local x,y = string.lower(a),string.lower(b)
+        if x == y then return a < b end
+        return x < y
+    end)
+    return names
+end
+
+function M:DeleteBuild(name)
+    local saves = NTalentCalculatorDB and NTalentCalculatorDB.builds
+    if type(saves) ~= "table" or type(name) ~= "string" or not saves[name] then
+        return false, "No saved build with that name."
+    end
+    saves[name] = nil
+    return true
+end

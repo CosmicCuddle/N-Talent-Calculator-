@@ -2,6 +2,8 @@
 
 An experimental **WoW 3.3.5a talent calculator for the Naxxramas AzerothCore server**, with individual-progression-specific talent rows, the server's custom Talent/Spell DBC snapshot, and website-compatible `NT1` talent build codes.
 
+**Maintainer handover:** [Detailed development roadmap](ROADMAP.md). It records the current verified build, planned work, source pins, testing evidence, risk register and precise next task, and must be updated with each code change.
+
 **Status: work in progress — client-testing alpha.** This is the standalone canonical source repository. The [N Addon Collection](https://github.com/CosmicCuddle/N-Addon-Collection) will import an approved, pinned snapshot of this repository, rather than maintain a second copy.
 
 ## What it does
@@ -19,7 +21,7 @@ An experimental **WoW 3.3.5a talent calculator for the Naxxramas AzerothCore ser
 - Restricts Vanilla tiers 0–7 to rows 1–6 plus a single capstone in row 7; TBC tiers 8–12 to rows 1–8 plus a single capstone in row 9; WotLK tiers 13+ to all 11 rows.
 - Uses **Dual Wield (Talent ID 1690)** for Vanilla Shaman Enhancement and **Contagion (Talent ID 1669)** for Vanilla Warlock Affliction. **Stormstrike (901)** and **Dark Pact (1022)** are side-row talents hidden in Vanilla and available from TBC onward. The actual off-centre **TBC Paladin Holy Divine Illumination (1747)** exception remains.
 - Exports and imports **NT1 codes** compatible with the [website calculator](https://github.com/CosmicCuddle/Naxxramas-Resource-Hub/tree/main/talents).
-- Saves named builds using the addon's own `NTalentCalculatorDB` SavedVariables.
+- Saves named builds using the addon's own `NTalentCalculatorDB` SavedVariables. The **Saved Builds** area in `/ntalent` now provides a name field, previous/next saved-name selection, Save, Load and Delete buttons, with second-click confirmation before overwriting/deleting.
 
 **Planning only:** This addon does not spend, unlearn, or change your character's actual talents. It does not change server settings or DBC files.
 
@@ -38,7 +40,7 @@ An experimental **WoW 3.3.5a talent calculator for the Naxxramas AzerothCore ser
 
 1. Back up your existing `Interface/AddOns/NTalentCalculator/` folder if it exists and the corresponding account `WTF/.../SavedVariables/NTalentCalculator.lua` file.
 2. Open the newest successful **Validate and package Talent Calculator** GitHub Actions run for this branch/PR.
-3. Download the `n-talent-calculator-test` artifact, then open the inner `N-Talent-Calculator-v0.1.0-alpha.10.zip` inside it.
+3. Download the `n-talent-calculator-test` artifact, then open the inner `N-Talent-Calculator-v0.1.0-alpha.11.zip` inside it.
 4. Extract the **one** `NTalentCalculator` folder directly into `World of Warcraft/Interface/AddOns/`.
 5. Start WoW 3.3.5a; enable `N Talent Calculator` in the AddOns screen, and type `/ntalent`.
 
@@ -65,7 +67,7 @@ Offline tests cover data origin, Lua 5.1 syntax, Vanilla/TBC/WotLK visibility, e
 
 Work on development branches and review pull requests before publishing releases. The current N Addon Collection v1.0.0 remains intact. To roll back this addon, close WoW, restore your backed-up `NTalentCalculator` folder and optionally saved builds if needed.
 
-**Known remaining work:** Verify corrected alpha.10 Vanilla capstones, simplified art and visibly routed prerequisite arrows across classes, era limits and UI scales; validate complex cross-platform NT1 codes, IP tier transitions, precise rank effects, saved builds and optional module enable/disable after Reload UI.
+**Known remaining work:** Verify alpha.11's Saved Builds/Share footer in the real 3.3.5a client, persist saved builds across `/reload` and game restart, test incompatible-era loads and complex website NT1 transfers. The authoritative next steps and test checklist are maintained in [ROADMAP.md](ROADMAP.md).
 
 See [the collection integration PR](https://github.com/CosmicCuddle/N-Addon-Collection/pull/5) for experimental v2 suite integration.
 
