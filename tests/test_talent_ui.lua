@@ -415,6 +415,7 @@ assert((M.points[first.talent[1]] or 0) == rankBefore+1,
 
 -- Replacing or deleting a saved code requires the same button twice.
 M.points = {}
+local emptyBuildCode = M:ExportCode()
 window.savedName:SetText("Beta Build")
 window.saveBuild.scripts.OnClick(window.saveBuild)
 assert(NTalentCalculatorDB.builds["Beta Build"] == savedCode,
@@ -422,7 +423,7 @@ assert(NTalentCalculatorDB.builds["Beta Build"] == savedCode,
 assert(window.savedStatus.text == "Save again to replace",
     "Potential overwrite must give a visible confirmation prompt")
 window.saveBuild.scripts.OnClick(window.saveBuild)
-assert(NTalentCalculatorDB.builds["Beta Build"] == "NT1:vanilla:warrior:",
+assert(NTalentCalculatorDB.builds["Beta Build"] == emptyBuildCode,
     "Second Save click must explicitly confirm replacement")
 
 window.deleteBuild.scripts.OnClick(window.deleteBuild)
