@@ -14,8 +14,13 @@ M.CLASS_ORDER = {
     "warrior", "paladin", "hunter", "rogue", "priest", "deathknight",
     "shaman", "mage", "warlock", "druid"
 }
+-- The approved custom Talent.dbc has these actual Vanilla row-7
+-- centres: Enhancement Dual Wield (1690), Affliction Contagion (1669).
+-- Stormstrike (901) and Dark Pact (1022) are row-7 side talents and
+-- therefore appear starting in TBC, not Vanilla. Do not override them.
+-- Retain only verified *off-centre* exceptions.
 M.OFF_CENTRE = {
-    vanilla = {[263]=901, [302]=1022},
+    vanilla = {},
     tbc = {[382]=1747}
 }
 M.era = nil    -- unknown until authoritative IP response or completed quests
