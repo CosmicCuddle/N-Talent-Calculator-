@@ -17,7 +17,7 @@ An experimental **WoW 3.3.5a talent calculator for the Naxxramas AzerothCore ser
 - **Visible Talent.dbc prerequisite connections:** Connects dependent talents using thicker, higher-contrast lines routed through gaps beside the icons rather than the 4-pixel gaps between rows. Arrows stay grey until the required prerequisite rank is planned, then turn green. Expansion-hidden talents have no connectors.
 - Reads **Individual Progression tiers** using the existing server read-only `.ipsvc data` protocol (`##IPSVC##PD~<tier>`), with completed milestone quests as a fallback.
 - Restricts Vanilla tiers 0–7 to rows 1–6 plus a single capstone in row 7; TBC tiers 8–12 to rows 1–8 plus a single capstone in row 9; WotLK tiers 13+ to all 11 rows.
-- Preserves off-centre server capstones: Stormstrike (901), Dark Pact (1022), Divine Illumination (1747).
+- Uses **Dual Wield (Talent ID 1690)** for Vanilla Shaman Enhancement and **Contagion (Talent ID 1669)** for Vanilla Warlock Affliction. **Stormstrike (901)** and **Dark Pact (1022)** are side-row talents hidden in Vanilla and available from TBC onward. The actual off-centre **TBC Paladin Holy Divine Illumination (1747)** exception remains.
 - Exports and imports **NT1 codes** compatible with the [website calculator](https://github.com/CosmicCuddle/Naxxramas-Resource-Hub/tree/main/talents).
 - Saves named builds using the addon's own `NTalentCalculatorDB` SavedVariables.
 
@@ -38,7 +38,7 @@ An experimental **WoW 3.3.5a talent calculator for the Naxxramas AzerothCore ser
 
 1. Back up your existing `Interface/AddOns/NTalentCalculator/` folder if it exists and the corresponding account `WTF/.../SavedVariables/NTalentCalculator.lua` file.
 2. Open the newest successful **Validate and package Talent Calculator** GitHub Actions run for this branch/PR.
-3. Download the `n-talent-calculator-test` artifact, then open the inner `N-Talent-Calculator-v0.1.0-alpha.9.zip` inside it.
+3. Download the `n-talent-calculator-test` artifact, then open the inner `N-Talent-Calculator-v0.1.0-alpha.10.zip` inside it.
 4. Extract the **one** `NTalentCalculator` folder directly into `World of Warcraft/Interface/AddOns/`.
 5. Start WoW 3.3.5a; enable `N Talent Calculator` in the AddOns screen, and type `/ntalent`.
 
@@ -59,12 +59,18 @@ python3 scripts/build_talent_data.py --source /path/to/Naxxramas-Resource-Hub --
 python3 scripts/build_addon.py --output-dir dist
 ```
 
-Offline tests cover data origin, Lua 5.1 syntax, Vanilla/TBC/WotLK visibility, capstones, prerequisites, IP response parsing, original website share codes and a simulated 3-tree UI. These do not replace tests on a real WoW 3.3.5a client.
+Offline tests cover data origin, Lua 5.1 syntax, Vanilla/TBC/WotLK visibility, exact real-DBC Dual Wield/Contagion capstones, prerequisites, IP response parsing, original website share codes and a simulated 3-tree UI. These do not replace tests on a real WoW 3.3.5a client.
 
 ## Development and rollback
 
 Work on development branches and review pull requests before publishing releases. The current N Addon Collection v1.0.0 remains intact. To roll back this addon, close WoW, restore your backed-up `NTalentCalculator` folder and optionally saved builds if needed.
 
-**Known remaining work:** Verify alpha.8's simplified art and visibly routed prerequisite arrows across classes, era limits and UI scales; validate complex cross-platform NT1 codes, IP tier transitions, precise rank effects, saved builds and optional module enable/disable after Reload UI.
+**Known remaining work:** Verify corrected alpha.10 Vanilla capstones, simplified art and visibly routed prerequisite arrows across classes, era limits and UI scales; validate complex cross-platform NT1 codes, IP tier transitions, precise rank effects, saved builds and optional module enable/disable after Reload UI.
 
 See [the collection integration PR](https://github.com/CosmicCuddle/N-Addon-Collection/pull/5) for experimental v2 suite integration.
+
+## Vanilla capstone correction (alpha.10)
+
+The server's pinned custom Talent.dbc places **Dual Wield (1690)** and **Contagion (1669)** in row 7, centre column. Earlier versions incorrectly overrode these with **Stormstrike (901)** and **Dark Pact (1022)**, which are both side talents on the same row. The addon now hides those side talents in Vanilla and shows them again in TBC and Wrath, with no change to their actual talent IDs, DBC data or prerequisite ranks.
+
+Saved `NT1` codes containing the previously incorrect Vanilla-only Stormstrike or Dark Pact allocations will be rejected as invalid rather than silently reassigned. Preserve your SavedVariables backups if you need those historical builds for reference.
