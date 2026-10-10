@@ -22,7 +22,7 @@ local LAYOUT = {
     iconX = 28,
     iconY = 45,
     panelBaseHeight = 52,
-    frameBaseHeight = 277,
+    frameBaseHeight = 345,
 }
 
 
@@ -485,10 +485,129 @@ local function CreateWindow()
         }
     end
 
+    -- Saved builds use the existing NTalentCalculatorDB.builds table. Name
+    -- selection and Save/Load/Delete are managed here, not via chat macros.
+    -- Destructive actions require a second click; no SavedVariables migration.
+    local savedTitle = Label(window, "GameFontNormalSmall",
+        "SAVED BUILDS  |  Select a name or enter a new one", 31, -1, 600)
+    savedTitle:ClearAllPoints()
+    savedTitle:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", 31, 146)
+
+    window.savedName = CreateFrame("EditBox", nil, window, "InputBoxTemplate")
+    window.savedName:SetSize(295, 26)
+    window.savedName:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", 43, 105)
+    window.savedName:SetAutoFocus(false)
+    window.savedName:SetMaxLetters(50)
+    window.savedName:SetText("")
+    window.savedName:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+        window:Hide()
+    end)
+    window.savedName:SetScript("OnEnterPressed", function(self)
+        self:ClearFocus()
+    end)
+
+    local pendingAction
+    local function ClearPending() pendingAction = nil end
+    window.savedName:SetScript("OnTextChanged", ClearPending)
+
+    local function Name()
+        return (window.savedName:GetText() or ""):match("^%s*(.-)%s*$")
+    end
+    local function Status(message)
+        window.savedStatus:SetText(message)
+    end
+
+    window.previousBuild = PushButton(window, "<", 40, 0, 0, function()
+        local names = M:ListBuildNames()
+        if #names == 0 then Status("No saved builds"); return end
+        local current, position = Name(), nil
+        for i, name in ipairs(names) do
+            if name == current then position = i break end
+        end
+        position = position and ((position - 2) % #names + 1) or #names
+        window.savedName:SetText(names[position])
+        ClearPending()
+        Status(position .. " of " .. #names .. " saved")
+    end)
+    window.previousBuild:ClearAllPoints()
+    window.previousBuild:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", 352, 105)
+
+    window.nextBuild = PushButton(window, ">", 40, 0, 0, function()
+        local names = M:ListBuildNames()
+        if #names == 0 then Status("No saved builds"); return end
+        local current, position = Name(), nil
+        for i, name in ipairs(names) do
+            if name == current then position = i break end
+        end
+        position = position and (position % #names + 1) or 1
+        window.savedName:SetText(names[position])
+        ClearPending()
+        Status(position .. " of " .. #names .. " saved")
+    end)
+    window.nextBuild:ClearAllPoints()
+    window.nextBuild:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", 399, 105)
+
+    window.saveBuild = PushButton(window, "Save", 80, 0, 0, function()
+        local name = Name()
+        local code = M:ExportCode()
+        if not code then Status("Waiting for progression"); return end
+        if name == "" then Status("Enter a build name"); return end
+        local saved = NTalentCalculatorDB and NTalentCalculatorDB.builds
+        if saved and saved[name] and saved[name] ~= code then
+            if not pendingAction or pendingAction.kind ~= "overwrite" or
+                pendingAction.name ~= name or pendingAction.code ~= code then
+                pendingAction = {kind="overwrite", name=name, code=code}
+                Status("Save again to replace")
+                return
+            end
+        end
+        local ok, reason = M:SaveBuild(name)
+        ClearPending()
+        Status(ok and "Build saved" or reason)
+    end)
+    window.saveBuild:ClearAllPoints()
+    window.saveBuild:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", 452, 105)
+
+    window.loadBuild = PushButton(window, "Load", 80, 0, 0, function()
+        ClearPending()
+        local ok, reason = M:LoadBuild(Name())
+        Status(ok and "Build loaded" or reason)
+    end)
+    window.loadBuild:ClearAllPoints()
+    window.loadBuild:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", 539, 105)
+
+    window.deleteBuild = PushButton(window, "Delete", 80, 0, 0, function()
+        local name = Name()
+        local saved = NTalentCalculatorDB and NTalentCalculatorDB.builds
+        if not saved or not saved[name] then
+            ClearPending()
+            Status("Build not found")
+            return
+        end
+        if not pendingAction or pendingAction.kind ~= "delete" or
+            pendingAction.name ~= name then
+            pendingAction = {kind="delete", name=name}
+            Status("Delete again to confirm")
+            return
+        end
+        local ok, reason = M:DeleteBuild(name)
+        ClearPending()
+        if ok then window.savedName:SetText("") end
+        Status(ok and "Build deleted" or reason)
+    end)
+    window.deleteBuild:ClearAllPoints()
+    window.deleteBuild:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", 626, 105)
+
+    window.savedStatus = Label(window, "GameFontHighlightSmall",
+        "No saved build selected", 715, -1, 194)
+    window.savedStatus:ClearAllPoints()
+    window.savedStatus:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", 715, 111)
+
     -- All code sharing happens through the input field. Show code places a
     -- validated NT1 string here, and players use Ctrl+C to copy it.
     local codeLabel = Label(window, "GameFontNormalSmall",
-        "Website-compatible NT1 build code (Ctrl+C to copy):", 31, -1, 450)
+        "SHARE BUILD CODE  |  Select code, then Ctrl+C to copy", 31, -1, 450)
     codeLabel:ClearAllPoints()
     codeLabel:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", 31, 80)
 
@@ -533,7 +652,7 @@ local function CreateWindow()
     window.resetButton:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -36, 45)
 
     window.notice = Label(window, "GameFontHighlightSmall",
-        "Share builds with the website using NT1 codes. Save with /ntalent save NAME.", 32, -1, 880)
+        "Saved builds are local. NT1 codes work with the Resource Hub website.", 32, -1, 880)
     window.notice:ClearAllPoints()
     window.notice:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", 32, 20)
     return window
