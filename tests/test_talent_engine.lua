@@ -83,11 +83,18 @@ assert(M.era == "wotlk" and M.level == 80)
 assert(M:Available(primary[11], D.classes.warrior[1]))
 assert(M:Available(primary[12], D.classes.warrior[1]))
 
--- Exceptions matching the user's website DBC.
-assert(M:Available({901,6,0,{1},"Stormstrike"}, {263,"Enhancement",0,{}}, "vanilla"))
-assert(M:Available({1022,6,0,{1},"Dark Pact"}, {302,"Affliction",0,{}}, "vanilla"))
-assert(not M:Available({100,6,1,{1},"Wrong Centre"}, {263,"Enhancement",0,{}}, "vanilla"))
+-- Regression: correct Vanilla capstones from user's actual Talent.dbc.
+-- Stormstrike and Dark Pact are side talents unlocked by the TBC view.
+local enhancement = {263,"Enhancement",0,{}}
+local affliction = {302,"Affliction",0,{}}
+assert(M:Available({1690,6,1,{1},"Dual Wield"}, enhancement, "vanilla"))
+assert(not M:Available({901,6,2,{1},"Stormstrike"}, enhancement, "vanilla"))
+assert(M:Available({901,6,2,{1},"Stormstrike"}, enhancement, "tbc"))
+assert(M:Available({1669,6,1,{1},"Contagion"}, affliction, "vanilla"))
+assert(not M:Available({1022,6,2,{1},"Dark Pact"}, affliction, "vanilla"))
+assert(M:Available({1022,6,2,{1},"Dark Pact"}, affliction, "tbc"))
 assert(M:Available({1747,8,0,{1},"Divine Illumination"}, {382,"Holy",0,{}}, "tbc"))
+assert(not M:Available({100,8,1,{1},"Wrong Holy Centre"}, {382,"Holy",0,{}}, "tbc"))
 
 M:SetProgression("vanilla", 2)
 local oldPoints = M.points
