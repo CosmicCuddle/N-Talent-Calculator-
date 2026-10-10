@@ -5,7 +5,7 @@
 **Client:** World of Warcraft 3.3.5a, build 12340, Lua 5.1  
 **Maintained separately from:** https://github.com/CosmicCuddle/N-Addon-Collection  
 **Roadmap updated:** 10 October 2026  
-**Current development target:** 0.1.0-alpha.11 — Saved Builds and Sharing implementation complete; awaiting real-client verification  
+**Current main-branch version:** 0.1.0-alpha.11 — Saved Builds and Sharing implementation merged; awaiting real-client verification  
 **Release status:** standalone alpha; do not describe as production-ready  
 **Last confirmed in-game correction:** 0.1.0-alpha.10 — Vanilla Dual Wield and Contagion
 
@@ -65,11 +65,11 @@ NT1 codes are the common format. A code contains the era, class, and sorted base
 | alpha.7–alpha.8 | revised art placement and DBC prerequisite connectors, corrected after screenshots showed patchy backgrounds and unclear arrows | CI passed; final visual verification on alpha.8+ still needed |
 | alpha.9 | remove opaque black backing behind rank numbers | CI passed; visual result pending/ongoing |
 | alpha.10 | correct Vanilla Enhancement Dual Wield and Affliction Contagion | **confirmed fixed by player** |
-| alpha.11 in progress | in-window Saved Builds and Sharing, alphabetical name selection, two-click confirmation for overwrite/delete | automated Lua 5.1/UI/package tests passed in [PR #11](https://github.com/CosmicCuddle/N-Talent-Calculator-/pull/11); **not yet player-approved** |
+| alpha.11 | in-window Saved Builds and Sharing, alphabetical name selection, two-click confirmation for overwrite/delete | [PR #11](https://github.com/CosmicCuddle/N-Talent-Calculator-/pull/11) merged as e96db7754f8d8fff777e3da37a8e9a6340e8c942; [main CI passed](https://github.com/CosmicCuddle/N-Talent-Calculator-/actions/runs/38062985487); **not yet player-approved** |
 
 Use a separate release note or Git commit for each meaningful version. Do not treat the alpha versions as stable releases.
 
-## In progress — alpha.11 Saved Builds and Sharing
+## Awaiting client acceptance — alpha.11 Saved Builds and Sharing
 
 **Goal:** make the previously hidden Save and Load commands accessible in the talent window without losing website NT1 compatibility.
 
@@ -81,7 +81,7 @@ Use a separate release note or Git commit for each meaningful version. Do not tr
 - [x] ListBuildNames returns names in a predictable, case-insensitive order; deleting one entry doesn't change other entries.
 - [x] Buttons are implemented for entering and choosing saved names, Save, Load and two-step Delete/Replace.
 - [x] Automated Lua 5.1 UI tests pass for no overwrites on first click, deletion confirmation, alphabetical selection, and restored build points. Verified by [Actions run 38062796981](https://github.com/CosmicCuddle/N-Talent-Calculator-/actions/runs/38062796981).
-- [ ] After PR #11 merges, the GitHub Action must produce a new artifact from main for addon version 0.1.0-alpha.11 (PR artifact exists; main artifact not yet verified).
+- [x] Main-branch GitHub Actions run [38062985487](https://github.com/CosmicCuddle/N-Talent-Calculator-/actions/runs/38062985487) passed and uploaded n-talent-calculator-test containing version 0.1.0-alpha.11.
 - [ ] In WoW, at Vanilla tier and across common UI scales, the new footer controls do not overlap talent rows or each other.
 - [ ] Saved builds survive /reload and a full game restart; names and NT1 codes remain intact.
 - [ ] A saved TBC/WotLK build cannot bypass a Vanilla character's current era. An invalid or incompatible load leaves the current plan untouched.
