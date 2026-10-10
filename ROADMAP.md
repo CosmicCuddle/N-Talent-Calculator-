@@ -5,7 +5,7 @@
 **Client:** World of Warcraft 3.3.5a, build 12340, Lua 5.1  
 **Maintained separately from:** https://github.com/CosmicCuddle/N-Addon-Collection  
 **Roadmap updated:** 10 October 2026  
-**Current development target:** 0.1.0-alpha.11 — in-window Saved Builds and Sharing  
+**Current development target:** 0.1.0-alpha.11 — Saved Builds and Sharing implementation complete; awaiting real-client verification  
 **Release status:** standalone alpha; do not describe as production-ready  
 **Last confirmed in-game correction:** 0.1.0-alpha.10 — Vanilla Dual Wield and Contagion
 
@@ -65,7 +65,7 @@ NT1 codes are the common format. A code contains the era, class, and sorted base
 | alpha.7–alpha.8 | revised art placement and DBC prerequisite connectors, corrected after screenshots showed patchy backgrounds and unclear arrows | CI passed; final visual verification on alpha.8+ still needed |
 | alpha.9 | remove opaque black backing behind rank numbers | CI passed; visual result pending/ongoing |
 | alpha.10 | correct Vanilla Enhancement Dual Wield and Affliction Contagion | **confirmed fixed by player** |
-| alpha.11 in progress | proper in-window Saved Builds and Sharing area, sorted build selection, safe overwrite/delete confirmation | code and unit tests being completed; not yet player-approved |
+| alpha.11 in progress | in-window Saved Builds and Sharing, alphabetical name selection, two-click confirmation for overwrite/delete | automated Lua 5.1/UI/package tests passed in [PR #11](https://github.com/CosmicCuddle/N-Talent-Calculator-/pull/11); **not yet player-approved** |
 
 Use a separate release note or Git commit for each meaningful version. Do not treat the alpha versions as stable releases.
 
@@ -80,14 +80,16 @@ Use a separate release note or Git commit for each meaningful version. Do not tr
 - [x] Existing exported codes and SavedVariables format remain unchanged.
 - [x] ListBuildNames returns names in a predictable, case-insensitive order; deleting one entry doesn't change other entries.
 - [x] Buttons are implemented for entering and choosing saved names, Save, Load and two-step Delete/Replace.
-- [ ] Automated Lua 5.1 UI tests pass for no overwrites on first click, deletion confirmation, alphabetical selection, and restored build points.
-- [ ] GitHub Action produces a new artifact from the merged main branch with the expected addon version.
+- [x] Automated Lua 5.1 UI tests pass for no overwrites on first click, deletion confirmation, alphabetical selection, and restored build points. Verified by [Actions run 38062796981](https://github.com/CosmicCuddle/N-Talent-Calculator-/actions/runs/38062796981).
+- [ ] After PR #11 merges, the GitHub Action must produce a new artifact from main for addon version 0.1.0-alpha.11 (PR artifact exists; main artifact not yet verified).
 - [ ] In WoW, at Vanilla tier and across common UI scales, the new footer controls do not overlap talent rows or each other.
 - [ ] Saved builds survive /reload and a full game restart; names and NT1 codes remain intact.
 - [ ] A saved TBC/WotLK build cannot bypass a Vanilla character's current era. An invalid or incompatible load leaves the current plan untouched.
 - [ ] Ctrl+C from the share-code box imports successfully on the current website and the inverse direction works.
 - [ ] ESC closes the window even when either edit field has focus; /ntalent remains usable after reopening.
 - [ ] Verify that an empty name, missing build, duplicate name, and confirmed Delete produce understandable feedback.
+
+**Next immediate task:** install the alpha.11 GitHub Actions test ZIP on the user's WoW 3.3.5a client and inspect the new saved-build footer at Vanilla tier. Enter two names, Save each, use the arrows, Load after Reset, confirm Delete and Save overwrite, and check /reload and Ctrl+C import/export. Record screenshots and any Lua errors before calling the UI finished.
 
 **Exit criteria:** screenshot of the footer plus the saved/reloaded build test from the user. Only then mark alpha.11 visually verified. Do not publish a full stable calculator release purely on mocked UI tests.
 
