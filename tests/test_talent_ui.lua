@@ -85,7 +85,7 @@ M:SetProgression("vanilla",1)
 M:ToggleWindow()
 local window=NTalentCalculatorFrame
 assert(window and window:IsShown(), "Talent UI failed to open")
-assert(window.width == 940 and window.height == 550,
+assert(window.width == 940 and window.height == 618,
     "Compact Vanilla planner must use the reviewed 940px layout")
 assert(window.code.width == 552, "Code box must leave room for its buttons")
 assert(43 + window.code.width + 15 <=
@@ -129,6 +129,15 @@ for index, panel in ipairs(panelFrames) do
 end
 assert(window.height - (119 + panelFrames[1].height) - 80 >= 20,
     "Keep breathing room between bottom of talents and share-code section")
+assert(window.savedName and window.savedName.width == 295 and
+    window.saveBuild and window.loadBuild and window.deleteBuild and
+    window.previousBuild and window.nextBuild,
+    "Saved-build management must be available without slash commands")
+assert(window.savedName.pos[5] == 105 and window.code.pos[5] == 44,
+    "Saved builds must sit above the NT1 share-code row")
+assert(window.savedStatus and window.savedStatus.parent == window,
+    "Save/load/delete should provide visible feedback")
+
 assert(#UISpecialFrames == 1 and UISpecialFrames[1] == "NTalentCalculatorFrame",
     "WoW must recognize the window as closable with Escape")
 assert(window.era.text:find("Vanilla",1,true))
@@ -380,6 +389,58 @@ window.code:SetText(code)
 window.importButton.scripts.OnClick(window.importButton)
 assert((M.points[first.talent[1]] or 0)==rankBefore+1,
     "Import button failed to restore the selected build")
+
+-- GUI regression: save, list, load, overwrite confirmation and delete.
+local savedCode = M:ExportCode()
+window.savedName:SetText("Alpha Build")
+window.saveBuild.scripts.OnClick(window.saveBuild)
+assert(NTalentCalculatorDB.builds["Alpha Build"] == savedCode,
+    "Save button failed to persist a named build")
+window.savedName:SetText("Beta Build")
+window.saveBuild.scripts.OnClick(window.saveBuild)
+local names = M:ListBuildNames()
+assert(#names == 2 and names[1] == "Alpha Build" and names[2] == "Beta Build",
+    "Saved build list must be alphabetical")
+window.savedName:SetText("")
+window.nextBuild.scripts.OnClick(window.nextBuild)
+assert(window.savedName:GetText() == "Alpha Build",
+    "Next selector should choose first saved build")
+window.previousBuild.scripts.OnClick(window.previousBuild)
+assert(window.savedName:GetText() == "Beta Build",
+    "Previous selector should wrap to the last saved build")
+M.points = {}
+window.loadBuild.scripts.OnClick(window.loadBuild)
+assert((M.points[first.talent[1]] or 0) == rankBefore+1,
+    "Load button must restore a saved build")
+
+-- Replacing or deleting a saved code requires the same button twice.
+M.points = {}
+window.savedName:SetText("Beta Build")
+window.saveBuild.scripts.OnClick(window.saveBuild)
+assert(NTalentCalculatorDB.builds["Beta Build"] == savedCode,
+    "First Save click must not overwrite existing build data")
+assert(window.savedStatus.text == "Save again to replace",
+    "Potential overwrite must give a visible confirmation prompt")
+window.saveBuild.scripts.OnClick(window.saveBuild)
+assert(NTalentCalculatorDB.builds["Beta Build"] == "NT1:vanilla:warrior:",
+    "Second Save click must explicitly confirm replacement")
+
+window.deleteBuild.scripts.OnClick(window.deleteBuild)
+assert(NTalentCalculatorDB.builds["Beta Build"],
+    "First Delete click must not remove the saved build")
+assert(window.savedStatus.text == "Delete again to confirm",
+    "Deletion should have a visible two-click confirmation")
+window.deleteBuild.scripts.OnClick(window.deleteBuild)
+assert(not NTalentCalculatorDB.builds["Beta Build"],
+    "Second Delete click should remove the selected build")
+assert(NTalentCalculatorDB.builds["Alpha Build"] == savedCode,
+    "Deleting one build must not affect other stored builds")
+window.savedName:SetText("Alpha Build")
+M.points = {}
+window.loadBuild.scripts.OnClick(window.loadBuild)
+assert((M.points[first.talent[1]] or 0) == rankBefore+1,
+    "Remaining build should still be loadable after deletion")
+
 
 -- Escape must work even if an edit box currently holds keyboard focus.
 window.code:SetFocus()
