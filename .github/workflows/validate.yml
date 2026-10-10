@@ -48,6 +48,7 @@ jobs:
           luac5.1 -p NTalentCalculator/Engine.lua NTalentCalculator/Progression.lua NTalentCalculator/UI.lua
           lua5.1 tests/test_talent_dataset.lua
           lua5.1 tests/report_capstone_candidates.lua
+          lua5.1 tests/test_real_capstones.lua
           lua5.1 tests/test_talent_engine.lua
           lua5.1 tests/test_talent_progression.lua
           lua5.1 tests/test_talent_ui.lua
